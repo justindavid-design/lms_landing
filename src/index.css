@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles to match the design */
+:root{
+  --green-1:#6e8f73;
+  --green-2:#c8d6ca;
+}
+
+/* Global font */
+body{
+  font-family: Poppins, sans-serif, Montserrat, sans-serif;
+}
+
+.hero-gradient{
+  background: linear-gradient(180deg, rgba(239,241,239,1) 0%, rgba(177,200,178,0.95) 45%, rgba(110,143,115,1) 100%);
+}
+
+/* Tighter card, inputs and buttons to match design */
+.rounded-xl-card{
+  border-radius: 28px;
+}
+
+.soft-shadow{
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-xl-card soft-shadow p-8 md:p-10;
+  }
+
+  .input-base {
+    @apply w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-200;
+  }
+
+  .primary-btn {
+    @apply w-full bg-black text-white py-3 rounded-md text-sm font-semibold;
+  }
+
+  .card-title {
+    @apply text-3xl md:text-4xl font-extrabold tracking-tight;
+  }
+
+  .hero-title {
+    @apply text-5xl md:text-6xl font-extrabold tracking-tight leading-tight;
+  }
+}
+
+.rounded-xl-card{
+  border-radius: 26px;
+}
+
+.soft-shadow{
+  box-shadow: 0 8px 8px rgba(0,0,0,0.08);
+}
