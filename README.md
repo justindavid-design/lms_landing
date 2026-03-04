@@ -21,3 +21,4 @@ Notes
 - Uses Vite for fast dev server
 - Tailwind is configured in `tailwind.config.cjs`
 - Material UI components are used for buttons and layout bits
+

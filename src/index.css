@@ -4,8 +4,11 @@
 
 /* Custom styles to match the design */
 :root{
-  --green-1:#6e8f73;
-  --green-2:#c8d6ca;
+  --accent: #688668; /* primary color */
+  --accent-2: #0ea5a4; /* secondary teal accent */
+  --text: #0b0b0b;
+  --muted: #6b7280;
+  --bg: #ffffff;
 }
 
 /* Global font */
@@ -14,7 +17,7 @@ body{
 }
 
 .hero-gradient{
-  background: linear-gradient(180deg, rgba(239,241,239,1) 0%, rgba(177,200,178,0.95) 45%, rgba(110,143,115,1) 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(245,247,250,1) 45%, rgba(250,250,250,1) 100%);
 }
 
 /* Tighter card, inputs and buttons to match design */
@@ -28,15 +31,15 @@ body{
 
 @layer components {
   .card {
-    @apply bg-white rounded-xl-card soft-shadow p-8 md:p-10;
+    @apply bg-surface rounded-xl-card soft-shadow p-8 md:p-10;
   }
 
   .input-base {
-    @apply w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-200;
+    @apply w-full border border-neutral-muted rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent/80;
   }
 
   .primary-btn {
-    @apply w-full bg-black text-white py-3 rounded-md text-sm font-semibold;
+    @apply w-full bg-primary text-white py-3 rounded-md text-sm font-semibold;
   }
 
   .card-title {
@@ -44,7 +47,7 @@ body{
   }
 
   .hero-title {
-    @apply text-5xl md:text-6xl font-extrabold tracking-tight leading-tight;
+    @apply text-5xl md:text-6xl font-extrabold tracking-tight leading-tight text-neutral;
   }
 }
 
