@@ -47,7 +47,7 @@ export default function Features() {
 
   return (
     <section 
-      className="py-16 bg-white overflow-hidden font-['Poppins']"
+      className="py-16 bg-surface overflow-hidden font-['Poppins']"
       onMouseEnter={() => setIsPaused(true)}  
       onMouseLeave={() => setIsPaused(false)} 
     >
@@ -88,27 +88,12 @@ export default function Features() {
 
         {/* Text Content with AOS delay */}
         <div key={currentIndex} className="animate-in fade-in slide-in-from-bottom-4 duration-1000 px-4 mt-8" data-aos="fade-up" data-aos-delay="400">
-          <h3 className="text-3xl font-bold font-poppins mb-3 text-slate-900">
+          <h3 className="text-3xl font-bold font-poppins mb-3 text-main">
             {featureData[currentIndex].title}
           </h3>
           <p className="text-gray-600 font-['Montserrat'] max-w-lg mx-auto leading-relaxed text-sm">
             {featureData[currentIndex].description}
           </p>
-        </div>
-      </Container>
-
-      {/* Expanded feature cards */}
-      <Container maxWidth="lg" className="mt-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {featureData.map((f, i)=> (
-            <div key={i} className="card p-6 text-left">
-              <div className="w-full h-40 mb-4 flex items-center justify-center bg-gray-50 rounded-md overflow-hidden">
-                <img src={f.image} alt="" className="max-h-full object-contain" />
-              </div>
-              <h4 className="font-semibold text-lg mb-2">{f.title}</h4>
-              <p className="text-sm text-gray-600">{f.description}</p>
-            </div>
-          ))}
         </div>
       </Container>
     </section>

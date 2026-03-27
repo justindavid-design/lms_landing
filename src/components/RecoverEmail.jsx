@@ -31,7 +31,7 @@ export default function RecoverEmail(){
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden"
+      className="min-h-screen flex items-center justify-center bg-app relative overflow-hidden"
       style={{
         backgroundImage: "url('/src/assets/image.png')",
         backgroundRepeat: 'no-repeat',

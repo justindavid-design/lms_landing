@@ -21,7 +21,7 @@ export default function LogoutButton({ isOpen = true }){
     <button
       onClick={handleLogout}
       disabled={loading}
-      className="flex items-center gap-4 px-6 py-3 w-full text-left rounded-md hover:bg-slate-50 transition-colors text-slate-600"
+      className="flex items-center gap-4 px-6 py-3 w-full text-left rounded-md hover-surface transition-colors text-muted"
     >
       <img src="/src/assets/lg.png" alt="logout" className="w-5 h-5 object-contain grayscale opacity-70" />
       {isOpen && (

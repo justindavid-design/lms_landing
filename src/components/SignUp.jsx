@@ -11,13 +11,39 @@ export default function SignUp(){
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  const mapSignUpError = (err) => {
+    const raw = (err?.message || String(err) || '').toLowerCase()
+
+    if (raw.includes('sending confirmation email') || raw.includes('confirmation email')) {
+      return 'We could not send the confirmation email right now. Please try again later, or ask support/admin to configure Supabase SMTP or disable email confirmation in Auth settings for development.'
+    }
+
+    if (raw.includes('already registered') || raw.includes('already been registered') || raw.includes('user already registered')) {
+      return 'This email is already registered. Try logging in instead.'
+    }
+
+    if (raw.includes('password') && raw.includes('6')) {
+      return 'Password must be at least 6 characters.'
+    }
+
+    return err?.message || String(err)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
     if (password !== confirm) return setError('Passwords do not match')
+    if (password.length < 6) return setError('Password must be at least 6 characters')
     setLoading(true)
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: { display_name: name || email },
+        },
+      })
       if (signUpError) throw signUpError
       const user = data?.user
       if (user) {
@@ -37,14 +63,14 @@ export default function SignUp(){
         navigate('/login')
       }
     } catch (err) {
-      setError(err.message || String(err))
+      setError(mapSignUpError(err))
     } finally {
       setLoading(false)
     }
   }
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden"
+      className="min-h-screen flex items-center justify-center bg-app relative overflow-hidden"
       style={{
         backgroundImage: "url('/src/assets/image.png')",
         backgroundRepeat: 'no-repeat',

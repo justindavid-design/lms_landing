@@ -4,9 +4,14 @@ import App from './App'
 import './index.css'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
 import { AuthProvider } from './lib/AuthProvider'
-import { initTheme } from './lib/theme'
+import useTheme from './lib/useTheme'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
+
+function ThemeBootstrap() {
+  useTheme()
+  return null
+}
 
 const theme = createTheme({
   typography: {
@@ -33,14 +38,12 @@ createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
       <AuthProvider>
+        <ThemeBootstrap />
         <App />
       </AuthProvider>
     </ThemeProvider>
   </React.StrictMode>
 )
-
-// initialize Tailwind dark/light class
-initTheme()
 
 // initialize AOS (Animate On Scroll)
 if (typeof window !== 'undefined'){

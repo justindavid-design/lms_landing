@@ -2,7 +2,7 @@ import React from 'react'
 
 export default function HowItWorks(){
   return (
-    <section class="py-10 bg-white sm:py-16 lg:py-24">
+    <section class="py-10 bg-surface sm:py-16 lg:py-24">
     <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <div class="max-w-2xl mx-auto text-center">
             <h2 class="text-3xl font-bold leading-tight text-black sm:text-4xl lg:text-5xl">How does it work?</h2>
@@ -16,7 +16,7 @@ export default function HowItWorks(){
 
             <div class="relative grid grid-cols-1 text-center gap-y-12 md:grid-cols-3 gap-x-12">
                 <div>
-                    <div class="flex items-center justify-center w-16 h-16 mx-auto bg-white border-2 border-gray-200 rounded-full shadow">
+                    <div class="flex items-center justify-center w-16 h-16 mx-auto bg-surface border-2 border-token rounded-full shadow">
                         <span class="text-xl font-semibold text-gray-700"> 1 </span>
                     </div>
                     <h3 class="mt-6 text-xl font-semibold leading-tight text-black md:mt-10">Sign up or login</h3>
@@ -24,7 +24,7 @@ export default function HowItWorks(){
                 </div>
 
                 <div>
-                    <div class="flex items-center justify-center w-16 h-16 mx-auto bg-white border-2 border-gray-200 rounded-full shadow">
+                    <div class="flex items-center justify-center w-16 h-16 mx-auto bg-surface border-2 border-token rounded-full shadow">
                         <span class="text-xl font-semibold text-gray-700"> 2 </span>
                     </div>
                     <h3 class="mt-6 text-xl font-semibold leading-tight text-black md:mt-10">Take short lessons</h3>
@@ -32,7 +32,7 @@ export default function HowItWorks(){
                 </div>
 
                 <div>
-                    <div class="flex items-center justify-center w-16 h-16 mx-auto bg-white border-2 border-gray-200 rounded-full shadow">
+                    <div class="flex items-center justify-center w-16 h-16 mx-auto bg-surface border-2 border-token rounded-full shadow">
                         <span class="text-xl font-semibold text-gray-700"> 3 </span>
                     </div>
                     <h3 class="mt-6 text-xl font-semibold leading-tight text-black md:mt-10">Track progress</h3>

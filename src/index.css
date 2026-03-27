@@ -1,6 +1,10 @@
+@import './styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* squircle styles removed */
 
 /* Custom styles to match the design */
 :root{
@@ -57,4 +61,46 @@ body{
 
 .soft-shadow{
   box-shadow: 0 8px 8px rgba(0,0,0,0.08);
+}
+
+/* Accessibility / PWD support */
+.a11y-high-contrast {
+  --app-bg: #ffffff;
+  --sidebar-bg: #ffffff;
+  --header-bg: #ffffff;
+  --text-main: #000000;
+  --border-color: #000000;
+  --text-muted: #111111;
+  --text-subtle: #333333;
+  --surface-bg: #ffffff;
+  --surface-alt: #f2f2f2;
+}
+
+.a11y-large-text {
+  font-size: 18px;
+}
+
+.a11y-large-text body,
+.a11y-large-text input,
+.a11y-large-text button,
+.a11y-large-text select,
+.a11y-large-text textarea {
+  font-size: 1.05rem;
+}
+
+.a11y-readable-font body,
+.a11y-readable-font button,
+.a11y-readable-font input,
+.a11y-readable-font textarea,
+.a11y-readable-font select {
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.a11y-reduced-motion *,
+.a11y-reduced-motion *::before,
+.a11y-reduced-motion *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
 }

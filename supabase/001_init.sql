@@ -13,6 +13,7 @@ create table if not exists profiles (
 create table if not exists courses (
   id uuid default gen_random_uuid() primary key,
   title text not null,
+  course_code text unique,
   slug text unique not null,
   description text,
   author uuid references profiles(id),

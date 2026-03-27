@@ -1,0 +1,76 @@
+:root {
+  /* Light mode: Google Classroom-inspired whites and soft slates */
+  --app-bg: #f5f7fb;
+  --sidebar-bg: #ffffff;
+  --header-bg: #ffffff;
+  --text-main: #1f2937;
+  --border-color: #d9e1ec;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  --surface-bg: #ffffff;
+  --surface-alt: #eef2f7;
+}
+
+.dark {
+  /* Dark mode: deep navy + charcoal with high-contrast text */
+  --app-bg: #0b1220;
+  --sidebar-bg: #111827;
+  --header-bg: #0f172a;
+  --text-main: #e6edf7;
+  --border-color: #253247;
+  --text-muted: #b7c4d8;
+  --text-subtle: #8ea0b9;
+  --surface-bg: #111827;
+  --surface-alt: #1f2937;
+}
+
+html,
+body,
+#root {
+  background-color: var(--app-bg);
+  color: var(--text-main);
+}
+
+.bg-app {
+  background-color: var(--app-bg);
+}
+
+.bg-sidebar {
+  background-color: var(--sidebar-bg);
+}
+
+.bg-header {
+  background-color: var(--header-bg);
+}
+
+.bg-surface {
+  background-color: var(--surface-bg);
+}
+
+.bg-surface-alt {
+  background-color: var(--surface-alt);
+}
+
+.text-main {
+  color: var(--text-main);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-subtle {
+  color: var(--text-subtle);
+}
+
+.border-token {
+  border-color: var(--border-color);
+}
+
+.hover-surface:hover {
+  background-color: var(--surface-alt);
+}
+
+.bg-token-muted {
+  background-color: var(--border-color);
+}

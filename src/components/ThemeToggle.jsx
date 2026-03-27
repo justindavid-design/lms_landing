@@ -1,23 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Brightness4, Brightness7 } from '@mui/icons-material'
-import { toggleTheme, getStoredTheme } from '../lib/theme'
+import useTheme from '../lib/useTheme'
 
 export default function ThemeToggle(){
-  const [mode, setMode] = useState('light')
-  useEffect(()=>{
-    const stored = getStoredTheme()
-    if (stored) setMode(stored)
-    else setMode(document.documentElement.classList.contains('dark') ? 'dark' : 'light')
-  }, [])
+  const { theme, toggleTheme } = useTheme()
 
-  const handle = ()=>{
-    const next = toggleTheme()
-    setMode(next)
-  }
+  const handle = ()=>{ toggleTheme() }
 
   return (
-    <button onClick={handle} aria-label="Toggle theme" className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
-      {mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
+    <button onClick={handle} aria-label="Toggle theme" className="p-2 rounded-md hover-surface text-main">
+      {theme === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
     </button>
   )
 }

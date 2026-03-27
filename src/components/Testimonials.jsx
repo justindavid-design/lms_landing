@@ -30,7 +30,7 @@ export default function Testimonials(){
   }, []);
 
   return (
-    <section className="font-['Poppins'] py-20 bg-white overflow-hidden">
+    <section className="font-['Poppins'] py-20 bg-surface overflow-hidden">
       {/* Header Container with Fade Up */}
       <Container maxWidth="md" className="text-center" data-aos="fade-up">
         <h4 className="text-sm text-gray-400 font-medium">_</h4>
@@ -78,12 +78,12 @@ export default function Testimonials(){
             <input 
               type="email" 
               placeholder="Email..." 
-              className="w-full p-3 px-6 rounded-xl outline-none font-['Montserrat'] text-xs text-slate-800 bg-white shadow-inner focus:ring-2 focus:ring-black/20 transition-all"
+              className="w-full p-3 px-6 rounded-xl outline-none font-['Montserrat'] text-xs text-main bg-surface shadow-inner focus:ring-2 focus:ring-black/20 transition-all"
               required 
             />
             <button 
               type="submit" 
-              className="bg-white text-black font-medium px-10 py-2.5 rounded-full hover:bg-slate-900 active:scale-95 transition-all tracking-widest text-[10px]"
+              className="bg-surface text-main font-medium px-10 py-2.5 rounded-full hover-surface active:scale-95 transition-all tracking-widest text-[10px]"
             >
               Submit
             </button>

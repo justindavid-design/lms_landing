@@ -32,7 +32,7 @@ export default function About(){
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
       
       {/* 1st Card: Rounded Bottom Right (Speech Bubble Style) */}
-      <div className="flex justify-center" data-aos="zoom-in">
+      <div className="flex justify-center" data-aos="fade-right">
         <Card sx={{ 
           backgroundImage: "url('/src/assets/a1.png')",
           backgroundSize: 'cover',
@@ -59,7 +59,7 @@ export default function About(){
           We are dedicated to making high-quality learning accessible and effective. Our Learning Management System is built with the student in mind, featuring an adaptive quiz engine that adjusts to your unique progress.
         </p>
       </div>
-      <div className="flex justify-center" data-aos="zoom-in">
+      <div className="flex justify-center" data-aos="fade-left">
         <Card sx={{ 
           backgroundImage: "url('/src/assets/a2.png')",
           backgroundSize: 'cover',
@@ -74,7 +74,7 @@ export default function About(){
       </div>
 
       {/* 3rd Card: Rounded Top Right */}
-      <div className="flex justify-center" data-aos="zoom-in">
+      <div className="flex justify-center" data-aos="fade-right">
         <Card sx={{ 
           backgroundImage: "url('/src/assets/a3.png')",
           backgroundSize: 'cover',

@@ -18,15 +18,36 @@ export default function Login(){
       if (signInError) throw signInError
       const user = data?.user
       if (user) {
-        // create/upsert profile server-side
+        // Prefer server-side upsert (uses service-role key) to avoid RLS issues with anon client
         try {
-          await fetch('/api/profiles', {
+          const display_name = user.user_metadata?.full_name || user.email.split('@')[0]
+          const resp = await fetch('/api/profiles', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: user.id, display_name: user.email })
+            body: JSON.stringify({ id: user.id, display_name, role: 'student' })
           })
+          if (!resp.ok) {
+            console.warn('server profile upsert failed', resp.status, await resp.text())
+            // fallback to client-side upsert (may fail due to RLS)
+            try {
+              const upsertRes = await supabase.from('profiles').upsert({ id: user.id, display_name, role: 'student' }, { onConflict: ['id'] })
+              console.debug('client profile upsert result', upsertRes)
+            } catch (err) {
+              console.warn('client profile upsert also failed', err)
+            }
+          } else {
+            console.debug('server profile upsert ok')
+          }
         } catch (err) {
-          console.warn('profile create failed', err)
+          console.warn('server profile upsert error', err)
+          // try client-side upsert as a last resort
+          try {
+            const display_name = user.user_metadata?.full_name || user.email.split('@')[0]
+            const upsertRes = await supabase.from('profiles').upsert({ id: user.id, display_name, role: 'student' }, { onConflict: ['id'] })
+            console.debug('client profile upsert result', upsertRes)
+          } catch (err2) {
+            console.warn('client profile upsert failed', err2)
+          }
         }
         navigate('/dashboard')
       }
@@ -38,7 +59,7 @@ export default function Login(){
   }
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden"
+      className="min-h-screen flex items-center justify-center bg-app relative overflow-hidden"
       style={{
         backgroundImage: "url('/src/assets/image.png')",
         backgroundRepeat: 'no-repeat',
@@ -111,7 +132,7 @@ export default function Login(){
 
               <div>
                 <button type="button" className="w-full border border-gray-300 rounded-md py-3 flex items-center justify-center gap-2">
-                  <span className="bg-white rounded-full w-6 h-6 flex items-center justify-center">G</span>
+                  <span className="bg-surface rounded-full w-6 h-6 flex items-center justify-center">G</span>
                   Log in with Google
                 </button>
               </div>
