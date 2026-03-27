@@ -1,54 +1,97 @@
-const fs = require('fs')
-const path = require('path')
-
-const STORE = path.resolve(process.cwd(), 'tmp_notifications.json')
-function load(){ try{ return JSON.parse(fs.readFileSync(STORE,'utf8')||'[]') }catch(e){ return [] } }
-function save(d){ fs.writeFileSync(STORE, JSON.stringify(d, null, 2)) }
+const {
+  createNotification,
+  ensureCourseAccess,
+  getQuery,
+  getSupabase,
+  requireUserId,
+  respondWithError,
+} = require('./_lms')
 
 module.exports = async (req, res) => {
-  try{
-    if(req.method === 'GET'){
-      const list = load().sort((a,b)=> b.created_at - a.created_at)
-      return res.status(200).json(list)
+  try {
+    const db = getSupabase()
+
+    if (req.method === 'GET') {
+      const userId = requireUserId(req)
+      const courseId = getQuery(req, 'course_id')
+      const limit = Number(getQuery(req, 'limit') || 25)
+
+      let query = db
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+        .or(`user_id.eq.${userId},user_id.is.null`)
+
+      if (courseId) {
+        await ensureCourseAccess(courseId, userId)
+        query = query.eq('course_id', courseId)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return res.status(200).json(data || [])
     }
 
-    if(req.method === 'POST'){
+    if (req.method === 'POST') {
+      const actorUserId = req.body?.actor_user_id || requireUserId(req)
       const body = req.body || {}
-      if(!body || !body.title) return res.status(400).json({ error: 'title required' })
-      const list = load()
-      const item = { id: Date.now().toString(), title: body.title, body: body.body || null, read: false, created_at: Date.now() }
-      list.push(item)
-      save(list)
-      return res.status(201).json(item)
+      if (!body.title) return res.status(400).json({ error: 'title required' })
+
+      if (body.course_id) {
+        await ensureCourseAccess(body.course_id, actorUserId, { teacherOnly: true })
+      }
+
+      const data = await createNotification({
+        user_id: body.recipient_user_id || null,
+        course_id: body.course_id || null,
+        type: body.type || 'general',
+        title: body.title,
+        body: body.body || null,
+      })
+
+      return res.status(201).json(data)
     }
 
-    if(req.method === 'PATCH'){
+    if (req.method === 'PATCH') {
+      const userId = requireUserId(req)
       const body = req.body || {}
-      if(!body || !body.id) return res.status(400).json({ error: 'id required' })
-      const list = load()
-      const idx = list.findIndex(x=> x.id === String(body.id))
-      if(idx === -1) return res.status(404).json({ error: 'not found' })
-      const item = Object.assign(list[idx], body)
-      list[idx] = item
-      save(list)
-      return res.status(200).json(item)
+      if (!body.id) return res.status(400).json({ error: 'id required' })
+
+      const { data, error } = await db
+        .from('notifications')
+        .update({ read: typeof body.read === 'boolean' ? body.read : true })
+        .eq('id', body.id)
+        .or(`user_id.eq.${userId},user_id.is.null`)
+        .select()
+        .maybeSingle()
+
+      if (error) throw error
+      if (!data) return res.status(404).json({ error: 'not found' })
+      return res.status(200).json(data)
     }
 
-    if(req.method === 'DELETE'){
+    if (req.method === 'DELETE') {
+      const userId = requireUserId(req)
       const body = req.body || {}
-      if(!body || !body.id) return res.status(400).json({ error: 'id required' })
-      const list = load()
-      const idx = list.findIndex(x=> x.id === String(body.id))
-      if(idx === -1) return res.status(404).json({ error: 'not found' })
-      const [removed] = list.splice(idx,1)
-      save(list)
-      return res.status(200).json({ ok:true, removed })
+      if (!body.id) return res.status(400).json({ error: 'id required' })
+
+      const { data, error } = await db
+        .from('notifications')
+        .delete()
+        .eq('id', body.id)
+        .or(`user_id.eq.${userId},user_id.is.null`)
+        .select()
+        .maybeSingle()
+
+      if (error) throw error
+      if (!data) return res.status(404).json({ error: 'not found' })
+      return res.status(200).json({ ok: true, removed: data })
     }
 
     res.setHeader('Allow', 'GET, POST, PATCH, DELETE')
     return res.status(405).end('Method Not Allowed')
-  }catch(err){
-    console.error(err)
-    return res.status(500).json({ error: err.message || String(err) })
+  } catch (err) {
+    return respondWithError(res, err)
   }
 }

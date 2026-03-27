@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import supabase from '../lib/supabaseClient'
 import Loading from './Loading'
+import { useAuth } from '../lib/AuthProvider'
 
 export default function Notifications(){
+  const { user } = useAuth()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [newTitle, setNewTitle] = useState('')
@@ -11,8 +13,15 @@ export default function Notifications(){
     let mounted = true
 
     async function load(){
+      if (!user?.id) {
+        if (mounted) {
+          setItems([])
+          setLoading(false)
+        }
+        return
+      }
       try{
-        const res = await fetch('/api/notifications')
+        const res = await fetch(`/api/notifications?user_id=${encodeURIComponent(user.id)}`)
         const data = await res.json()
         if(!mounted) return
         setItems(data)
@@ -49,12 +58,12 @@ export default function Notifications(){
     }
 
     return () => { mounted = false; try{ subscription?.unsubscribe() }catch(e){} }
-  }, [])
+  }, [user?.id])
 
   const create = async () => {
-    if(!newTitle) return
+    if(!newTitle || !user?.id) return
     try{
-      const res = await fetch('/api/notifications', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ title: newTitle }) })
+      const res = await fetch('/api/notifications', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ title: newTitle, actor_user_id: user.id, recipient_user_id: user.id, user_id: user.id }) })
       const data = await res.json()
       setItems(prev => [data, ...prev])
       setNewTitle('')
@@ -63,7 +72,7 @@ export default function Notifications(){
 
   const markRead = async (id) => {
     try{
-      const res = await fetch('/api/notifications', { method: 'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, read: true }) })
+      const res = await fetch('/api/notifications', { method: 'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, read: true, user_id: user?.id }) })
       const data = await res.json()
       setItems(prev => prev.map(i => i.id === data.id ? data : i))
     }catch(err){ console.error(err) }

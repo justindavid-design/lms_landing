@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { AuthProvider } from '../src/lib/AuthProvider'
 import Login from '../src/components/Login'
 
@@ -31,7 +31,17 @@ vi.mock('../src/lib/supabaseClient', () => {
 import supabase from '../src/lib/supabaseClient'
 
 describe('Auth UI', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('allows user to sign in', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'u1' }),
+      text: async () => 'ok',
+    }))
+
     render(
       <MemoryRouter>
         <AuthProvider>

@@ -1,68 +1,84 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../../lib/AuthProvider'
+import { safeJson } from '../courses/utils'
 
-const DEFAULT_TODOS = [
-  { id: 1, title: 'Add dashboard analytics (StatsChart)', done: true },
-  { id: 2, title: 'Profile & settings pages', done: false },
-  { id: 3, title: 'Notifications center + real-time updates', done: true },
-  { id: 4, title: 'Course management CRUD UI', done: true },
-  { id: 5, title: 'Improve accessibility (ARIA, keyboard, contrast)', done: false },
-  { id: 6, title: 'Performance: lazy-load widgets', done: false },
-  { id: 7, title: 'Add tests (unit + e2e)', done: false },
-  { id: 8, title: 'Prepare deployment + monitoring', done: false }
-]
+function labelForStatus(task) {
+  if (task.is_teacher_view) {
+    return task.pending_review_count ? `${task.pending_review_count} to review` : 'Published'
+  }
 
-const STORAGE_KEY = 'projectTodos'
-const ASSIGNED_KEY = 'assignedTasks'
+  if (task.status === 'graded') {
+    return task.submission_score != null ? `Scored ${task.submission_score}` : 'Graded'
+  }
+
+  if (task.status === 'submitted') return 'Submitted'
+  if (task.status === 'late') return 'Late'
+  return 'Assigned'
+}
 
 export default function TodoWidget(){
-  const [todos, setTodos] = useState([])
-  const [isAssigned, setIsAssigned] = useState(false)
+  const { user } = useAuth()
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  useEffect(()=>{
-    try{
-      const assignedRaw = localStorage.getItem(ASSIGNED_KEY)
-      if(assignedRaw){
-        setTodos(JSON.parse(assignedRaw))
-        setIsAssigned(true)
+  useEffect(() => {
+    let active = true
+
+    async function load() {
+      if (!user?.id) {
+        setTasks([])
+        setLoading(false)
         return
       }
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if(raw){
-        setTodos(JSON.parse(raw))
-      }else{
-        setTodos(DEFAULT_TODOS)
+
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/tasks?user_id=${encodeURIComponent(user.id)}`)
+        const data = await safeJson(res)
+        if (!res.ok) throw new Error(data?.error || 'Failed to load tasks')
+        if (active) setTasks(Array.isArray(data) ? data.slice(0, 6) : [])
+      } catch (err) {
+        console.error(err)
+        if (active) setTasks([])
+      } finally {
+        if (active) setLoading(false)
       }
-    }catch(e){
-      console.warn('Failed to load todos', e)
-      setTodos(DEFAULT_TODOS)
     }
-  }, [])
 
-  useEffect(()=>{
-    // persist only the editable todo list (not assigned tasks)
-    try{ if(!isAssigned) localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)) }catch(e){ console.warn('Failed to save todos', e) }
-  }, [todos, isAssigned])
+    load()
+    return () => { active = false }
+  }, [user?.id])
 
-  const completed = todos.filter(t=>t.done).length
+  const completed = useMemo(
+    () => tasks.filter((task) => task.status === 'graded' || task.status === 'submitted').length,
+    [tasks]
+  )
 
   return (
     <div className="bg-surface rounded-xl-card p-4 border border-token shadow-sm" role="region" aria-label="Tasks Assigned">
       <div className="flex items-center justify-between mb-3">
         <div className="font-semibold">Tasks Assigned</div>
-        <div className="text-xs text-muted" aria-live="polite">{completed}/{todos.length}</div>
+        <div className="text-xs text-muted" aria-live="polite">{completed}/{tasks.length}</div>
       </div>
 
-      <ul className="space-y-2 max-h-56 overflow-auto" aria-label="Assigned tasks">
-        {todos.map(t => (
-          <li key={t.id} className="flex items-start gap-3">
-            <input type="checkbox" checked={t.done} disabled className="mt-1" aria-label={`Mark ${t.title} completed`} />
-            <div className="flex-1">
-              <div className={`text-sm ${t.done ? 'line-through text-subtle' : 'text-main'}`}>{t.title}</div>
-            </div>
-          </li>
-        ))}
-        {todos.length===0 && <li className="text-sm text-muted">No assigned tasks.</li>}
-      </ul>
+      {loading ? (
+        <div className="text-sm text-muted">Loading tasks...</div>
+      ) : (
+        <ul className="space-y-2 max-h-56 overflow-auto" aria-label="Assigned tasks">
+          {tasks.map((task) => (
+            <li key={task.id} className="rounded-xl border border-token p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-main truncate">{task.title}</div>
+                  <div className="text-xs text-muted mt-1">{task.course_title}</div>
+                </div>
+                <span className="text-[11px] uppercase tracking-wide text-subtle">{labelForStatus(task)}</span>
+              </div>
+            </li>
+          ))}
+          {tasks.length===0 && <li className="text-sm text-muted">No assigned tasks.</li>}
+        </ul>
+      )}
     </div>
   )
 }

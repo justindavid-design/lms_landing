@@ -1,6 +1,9 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function CourseCard({ course }){
+  const navigate = useNavigate()
+
   return (
     <div className="flex items-center justify-between bg-surface rounded-xl border border-token p-4 shadow-sm">
       <div className="flex items-center gap-4">
@@ -11,7 +14,12 @@ export default function CourseCard({ course }){
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <button className="px-3 py-1 bg-black text-white rounded-full text-sm">View course</button>
+        <button
+          onClick={() => navigate(`/courses/${course.id}`)}
+          className="px-3 py-1 bg-black text-white rounded-full text-sm"
+        >
+          View course
+        </button>
       </div>
     </div>
   )

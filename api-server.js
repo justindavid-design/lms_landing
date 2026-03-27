@@ -7,8 +7,14 @@ const verifyOtp = require(path.resolve(__dirname, 'api', 'verify-otp'))
 const resetPassword = require(path.resolve(__dirname, 'api', 'reset-password'))
 const stats = require(path.resolve(__dirname, 'api', 'stats'))
 const courses = require(path.resolve(__dirname, 'api', 'courses'))
+const courseModules = require(path.resolve(__dirname, 'api', 'course-modules'))
+const courseAssignments = require(path.resolve(__dirname, 'api', 'course-assignments'))
+const courseQuizzes = require(path.resolve(__dirname, 'api', 'course-quizzes'))
 const notifications = require(path.resolve(__dirname, 'api', 'notifications'))
 const profiles = require(path.resolve(__dirname, 'api', 'profiles'))
+const submissions = require(path.resolve(__dirname, 'api', 'submissions'))
+const tasks = require(path.resolve(__dirname, 'api', 'tasks'))
+const calendar = require(path.resolve(__dirname, 'api', 'calendar'))
 
 const app = express()
 const PORT = process.env.API_PORT || 8787
@@ -55,9 +61,66 @@ app.get('/api/stats', async (req, res) => {
   }
 })
 
+app.get('/api/tasks', async (req, res) => {
+  try{
+    await tasks(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.get('/api/calendar', async (req, res) => {
+  try{
+    await calendar(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
 app.all('/api/courses', async (req, res) => {
   try{
     await courses(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.all('/api/courses/:id/modules', async (req, res) => {
+  try{
+    req.params = req.params || {}
+    await courseModules(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.all('/api/courses/:id/assignments', async (req, res) => {
+  try{
+    req.params = req.params || {}
+    await courseAssignments(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.all('/api/courses/:id/quizzes', async (req, res) => {
+  try{
+    req.params = req.params || {}
+    await courseQuizzes(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.all('/api/quizzes', async (req, res) => {
+  try{
+    await courseQuizzes(req, res)
   }catch(err){
     console.error(err)
     res.status(500).json({ error: err.message || String(err) })
@@ -68,6 +131,26 @@ app.all('/api/courses/:id', async (req, res) => {
   try{
     req.params = req.params || {}
     await courses(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.all('/api/assignments/:id/submissions', async (req, res) => {
+  try{
+    req.params = req.params || {}
+    await submissions(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.patch('/api/submissions/:submissionId', async (req, res) => {
+  try{
+    req.params = req.params || {}
+    await submissions(req, res)
   }catch(err){
     console.error(err)
     res.status(500).json({ error: err.message || String(err) })

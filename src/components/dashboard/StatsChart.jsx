@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Loading from '../Loading'
+import { useAuth } from '../../lib/AuthProvider'
 
 function Sparkline({ data = [], width = 300, height = 80, stroke = '#3b82f6' }) {
   if (!data || data.length === 0) return null
@@ -26,12 +27,19 @@ function Sparkline({ data = [], width = 300, height = 80, stroke = '#3b82f6' }) 
 }
 
 export default function StatsChart(){
+  const { user } = useAuth()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!user?.id) {
+      setStats({ metrics: { activeUsers: 0, totalCourses: 0, avgScore: null, dueSoon: 0, pendingReviews: 0 }, series: [] })
+      setLoading(false)
+      return undefined
+    }
+
     let mounted = true
-    const url = '/api/stats'
+    const url = `/api/stats?user_id=${encodeURIComponent(user.id)}`
     fetch(url)
       .then(res => res.json())
       .then(data => {
@@ -41,11 +49,11 @@ export default function StatsChart(){
       .catch(() => {
         // fallback sample if API unavailable
         if (!mounted) return
-        setStats({ metrics: { activeUsers: 12, totalCourses: 8, avgScore: 78 }, series: [50,55,60,58,62,64,66,70] })
+        setStats({ metrics: { activeUsers: 0, totalCourses: 0, avgScore: null, dueSoon: 0, pendingReviews: 0 }, series: [0,0,0,0,0,0,0] })
       })
       .finally(() => mounted && setLoading(false))
     return () => { mounted = false }
-  }, [])
+  }, [user?.id])
 
   if (loading) return (
     <Loading message="Loading analytics…">
@@ -95,6 +103,11 @@ export default function StatsChart(){
           <div className="text-2xl font-bold">{m.avgScore ? `${Math.round(m.avgScore)}%` : '-'}</div>
           <div className="text-xs text-muted">Avg score</div>
         </div>
+      </div>
+
+      <div className="mb-3 flex items-center justify-between text-xs text-muted">
+        <span>Due soon: {m.dueSoon ?? 0}</span>
+        <span>Pending reviews: {m.pendingReviews ?? 0}</span>
       </div>
 
       <div>
