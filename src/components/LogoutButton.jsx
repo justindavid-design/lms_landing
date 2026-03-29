@@ -2,6 +2,26 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import supabase from '../lib/supabaseClient'
 
+function DynamicSvgIcon({ src, className = '' }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-block h-5 w-5 ${className}`}
+      style={{
+        backgroundColor: 'currentColor',
+        WebkitMaskImage: `url(${src})`,
+        maskImage: `url(${src})`,
+        WebkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat',
+        WebkitMaskPosition: 'center',
+        maskPosition: 'center',
+        WebkitMaskSize: 'contain',
+        maskSize: 'contain',
+      }}
+    />
+  )
+}
+
 export default function LogoutButton({ isOpen = true }){
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -21,9 +41,11 @@ export default function LogoutButton({ isOpen = true }){
     <button
       onClick={handleLogout}
       disabled={loading}
-      className="flex items-center gap-4 px-6 py-3 w-full text-left rounded-md hover-surface transition-colors text-muted"
+      className={`w-full rounded-md hover-surface transition-colors text-muted ${
+        isOpen ? 'flex items-center gap-4 px-6 py-3 text-left' : 'flex items-center justify-center px-0 py-3'
+      }`}
     >
-      <img src="/src/assets/lg.png" alt="logout" className="w-5 h-5 object-contain grayscale opacity-70" />
+      <DynamicSvgIcon src="/src/assets/logout.svg" className="opacity-70" />
       {isOpen && (
         <span className="text-sm font-medium">{loading ? 'Signing out...' : 'Sign out'}</span>
       )}

@@ -80,7 +80,7 @@ export default function CourseCard({
 
   return (
     <div className="w-full max-w-[370px]">
-      <div className="overflow-hidden rounded-[34px] border border-slate-300 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.10)]">
+      <div className="overflow-hidden rounded-[34px] border border-token bg-surface shadow-[0_8px_24px_rgba(0,0,0,0.10)]">
         <div className="relative h-[250px] overflow-hidden rounded-[30px]">
           <img
             src={imageUrl}
@@ -91,7 +91,7 @@ export default function CourseCard({
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-          <div className="absolute left-5 top-4 flex items-center gap-2 rounded-full bg-white px-2.5 py-1 text-[12px] font-semibold text-slate-900 shadow-sm">
+          <div className="absolute left-5 top-4 flex items-center gap-2 rounded-full border border-token bg-surface px-2.5 py-1 text-[12px] font-semibold text-main shadow-sm">
             <div className="flex -space-x-1.5">
               <span className="grid h-5 w-5 place-items-center rounded-full border border-white bg-green-700 text-[10px] text-white">
                 {teacherInitial}
@@ -114,11 +114,11 @@ export default function CourseCard({
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+              <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-token bg-surface shadow-xl">
                 <button
                   type="button"
                   onClick={openCourse}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover-surface"
                 >
                   <FolderOpen fontSize="small" />
                   Open class
@@ -131,7 +131,7 @@ export default function CourseCard({
                       setMenuOpen(false)
                       onCopyCode(course.course_code)
                     }}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover-surface"
                   >
                     <CopyAll fontSize="small" />
                     Copy code
@@ -145,7 +145,7 @@ export default function CourseCard({
                       setMenuOpen(false)
                       onEdit(course)
                     }}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover-surface"
                   >
                     <AssignmentInd fontSize="small" />
                     Edit course
@@ -184,10 +184,10 @@ export default function CourseCard({
 
         <div className="flex min-h-[220px] flex-col px-6 pb-5 pt-5">
           <div>
-            <p className="text-[17px] font-semibold leading-none text-black">
+            <p className="text-[17px] font-semibold leading-none text-main">
               {dueText}
             </p>
-            <p className="mt-2 text-[14px] leading-none text-slate-700">
+            <p className="mt-2 text-[14px] leading-none text-muted">
               {activityText}
             </p>
           </div>

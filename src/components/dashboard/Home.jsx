@@ -103,10 +103,10 @@ export default function Home(){
         </div>
 
         <HeaderStats stats={[
-          { label: 'Teaching', value: teachingCount },
-          { label: 'Enrolled', value: enrolledCount },
-          { label: 'Due Soon', value: dueSoonCount },
-          { label: 'Pending Reviews', value: reviewCount },
+          { label: 'Teaching', value: teachingCount, onClick: () => navigate('/courses') },
+          { label: 'Enrolled', value: enrolledCount, onClick: () => navigate('/courses') },
+          { label: 'Due Soon', value: dueSoonCount, onClick: () => navigate('/tasks') },
+          { label: 'Pending Reviews', value: reviewCount, onClick: () => navigate('/tasks') },
         ]} />
 
         <div className="my-6 flex items-center justify-between">
