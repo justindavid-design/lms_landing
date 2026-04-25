@@ -27,7 +27,8 @@ const SidebarItem = ({ iconSrc, label, isOpen, to }) => {
   const active = location.pathname === to;
 
   return (
-    <Link to={to} className={`flex items-center gap-4 px-6 py-3 cursor-pointer transition-all
+    <Link to={to} className={`flex items-center gap-4 cursor-pointer transition-all
+    ${isOpen ? 'px-6' : 'px-0 justify-center'} py-3
     ${active ? 'bg-surface-alt text-main rounded-r-full mr-2' : 'text-muted hover-surface'}`}>
       <DynamicSvgIcon src={iconSrc} active={active} />
       
@@ -42,18 +43,18 @@ export default function Sidebar({ isOpen }) {
     <aside className={`${isOpen ? 'w-64' : 'w-20'} bg-sidebar transition-all duration-300 flex flex-col border-r border-token overflow-hidden`}>
       
       <nav className="flex-1 overflow-y-auto pt-4">
-        <SidebarItem iconSrc="/src/assets/dash.svg" label="Dashboard" to="/dashboard" isOpen={isOpen} />
+        <SidebarItem iconSrc="/src/assets/dash.svg" label="Home" to="/dashboard" isOpen={isOpen} />
         <SidebarItem iconSrc="/src/assets/cour.svg" label="Courses" to="/courses" isOpen={isOpen} />
         <SidebarItem iconSrc="/src/assets/cale.svg" label="Calendar" to="/calendar" isOpen={isOpen} />
         <SidebarItem iconSrc="/src/assets/task.svg" label="To-do" to="/tasks" isOpen={isOpen} />
         
         <div className="my-4 border-t border-token mx-4" />
 
-        <SidebarItem iconSrc="/src/assets/arch.svg" label="Archived Courses" to="/archived" isOpen={isOpen} />
+        <SidebarItem iconSrc="/src/assets/arch.svg" label="Saved Courses" to="/archived" isOpen={isOpen} />
       </nav>
 
       <div className="pb-8 border-t border-token pt-4">
-        {isOpen && <p className="px-6 text-[10px] uppercase tracking-widest text-subtle font-bold mb-2">Settings</p>}
+        {isOpen && <p className="px-6 text-[10px] uppercase tracking-widest text-subtle font-bold mb-2">Comfort</p>}
         <SidebarItem iconSrc="/src/assets/sett.svg" label="Settings" to="/settings" isOpen={isOpen} />
         <div className={`mt-2 ${isOpen ? 'px-2' : 'px-0'}`}>
           <LogoutButton isOpen={isOpen} />

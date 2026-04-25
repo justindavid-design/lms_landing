@@ -1,38 +1,49 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import Loading from '../Loading'
+import PageHeader from '../PageHeader'
+import CourseTabs from '../CourseTabs'
+import HeaderStats from './HeaderStats'
 import { useAuth } from '../../lib/AuthProvider'
+import { useCourseName } from '../../lib/CourseNameContext'
 import { getApiErrorMessage, safeJson } from '../courses/utils'
+import QuizComposer, { createEmptyQuizDraft } from '../quizzes/QuizComposer'
+import QuizAttemptCard from '../quizzes/QuizAttemptCard'
+import { normalizeQuizQuestions } from '../quizzes/quizUtils'
+
+const emptyModule = { title: '', description: '' }
+const emptyAssignment = { title: '', instructions: '', due_at: '', module_id: '', status: 'published' }
+const emptyAnnouncement = { title: '', body: '' }
 
 function formatDateTime(value) {
   if (!value) return 'No due date'
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'No due date'
-  return date.toLocaleString()
+  return Number.isNaN(date.getTime()) ? 'No due date' : date.toLocaleString()
 }
 
-function SectionCard({ title, description, children, action }) {
+function Section({ title, description, children }) {
   return (
-    <section className="rounded-2xl border border-token bg-surface p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-main">{title}</h2>
-          {description ? <p className="mt-2 text-sm text-muted">{description}</p> : null}
-        </div>
-        {action}
-      </div>
+    <section className="rounded-[28px] border border-token bg-surface p-5 shadow-sm md:p-6">
+      <h2 className="text-2xl font-black tracking-[-0.03em] text-main">{title}</h2>
+      {description ? <p className="mt-2 text-sm leading-7 text-muted">{description}</p> : null}
       <div className="mt-5">{children}</div>
     </section>
   )
 }
 
-function ItemBadge({ children }) {
-  return <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">{children}</span>
+function Badge({ children, tone = 'bg-surface' }) {
+  return <span className={`rounded-full border border-token px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-main ${tone}`}>{children}</span>
+}
+
+function EmptyState({ children }) {
+  return <div className="rounded-2xl border border-token bg-app p-4 text-sm text-muted">{children}</div>
 }
 
 export default function CourseDetails() {
   const { id } = useParams()
   const { user } = useAuth()
+  const { setCurrentCourseName } = useCourseName()
+  const userId = user?.id
 
   const [course, setCourse] = useState(null)
   const [modules, setModules] = useState([])
@@ -40,51 +51,52 @@ export default function CourseDetails() {
   const [quizzes, setQuizzes] = useState([])
   const [announcements, setAnnouncements] = useState([])
   const [submissionLists, setSubmissionLists] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
-
-  const [moduleForm, setModuleForm] = useState({ title: '', description: '' })
-  const [assignmentForm, setAssignmentForm] = useState({ title: '', instructions: '', due_at: '', module_id: '', status: 'published' })
-  const [quizForm, setQuizForm] = useState({ title: '', description: '', questions: '', due_at: '', status: 'published' })
-  const [announcementForm, setAnnouncementForm] = useState({ title: '', body: '' })
   const [submissionDrafts, setSubmissionDrafts] = useState({})
   const [gradingDrafts, setGradingDrafts] = useState({})
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [activeComposer, setActiveComposer] = useState('')
+  const [activeTab, setActiveTab] = useState('overview')
 
-  const userId = user?.id
+  const [moduleForm, setModuleForm] = useState(emptyModule)
+  const [assignmentForm, setAssignmentForm] = useState(emptyAssignment)
+  const [quizForm, setQuizForm] = useState(createEmptyQuizDraft())
+  const [announcementForm, setAnnouncementForm] = useState(emptyAnnouncement)
 
   async function loadCourseWorkspace() {
-    if (!id || !userId) return
+    if (!id || !userId) {
+      setLoading(false)
+      return
+    }
 
     setLoading(true)
-
     try {
-      const [courseRes, modulesRes, assignmentsRes, quizzesRes, announcementsRes] = await Promise.all([
+      const [courseRes, modulesRes, assignmentsRes, quizzesRes, noticesRes] = await Promise.all([
         fetch(`/api/courses/${id}?user_id=${encodeURIComponent(userId)}`),
         fetch(`/api/courses/${id}/modules?user_id=${encodeURIComponent(userId)}`),
         fetch(`/api/courses/${id}/assignments?user_id=${encodeURIComponent(userId)}`),
         fetch(`/api/courses/${id}/quizzes?user_id=${encodeURIComponent(userId)}`),
         fetch(`/api/notifications?user_id=${encodeURIComponent(userId)}&course_id=${encodeURIComponent(id)}&limit=10`),
       ])
-
-      const [courseData, modulesData, assignmentsData, quizzesData, announcementsData] = await Promise.all([
+      const [courseData, modulesData, assignmentsData, quizzesData, noticesData] = await Promise.all([
         safeJson(courseRes),
         safeJson(modulesRes),
         safeJson(assignmentsRes),
         safeJson(quizzesRes),
-        safeJson(announcementsRes),
+        safeJson(noticesRes),
       ])
-
-      if (!courseRes.ok) throw new Error(getApiErrorMessage(courseData, 'Failed to load course.'))
-      if (!modulesRes.ok) throw new Error(getApiErrorMessage(modulesData, 'Failed to load modules.'))
-      if (!assignmentsRes.ok) throw new Error(getApiErrorMessage(assignmentsData, 'Failed to load assignments.'))
-      if (!quizzesRes.ok) throw new Error(getApiErrorMessage(quizzesData, 'Failed to load quizzes.'))
-      if (!announcementsRes.ok) throw new Error(getApiErrorMessage(announcementsData, 'Failed to load announcements.'))
+      if (!courseRes.ok) throw new Error(getApiErrorMessage(courseData, 'We could not load this course.'))
+      if (!modulesRes.ok) throw new Error(getApiErrorMessage(modulesData, 'We could not load the lessons.'))
+      if (!assignmentsRes.ok) throw new Error(getApiErrorMessage(assignmentsData, 'We could not load the assignments.'))
+      if (!quizzesRes.ok) throw new Error(getApiErrorMessage(quizzesData, 'We could not load the quizzes.'))
+      if (!noticesRes.ok) throw new Error(getApiErrorMessage(noticesData, 'We could not load the announcements.'))
 
       setCourse(courseData)
+      setCurrentCourseName(courseData?.title || 'Course Details')
       setModules(Array.isArray(modulesData) ? modulesData : [])
       setAssignments(Array.isArray(assignmentsData) ? assignmentsData : [])
       setQuizzes(Array.isArray(quizzesData) ? quizzesData : [])
-      setAnnouncements(Array.isArray(announcementsData) ? announcementsData.filter((item) => item.type === 'announcement') : [])
+      setAnnouncements(Array.isArray(noticesData) ? noticesData.filter((item) => item.type === 'announcement') : [])
       setMessage('')
     } catch (err) {
       console.error(err)
@@ -100,59 +112,105 @@ export default function CourseDetails() {
   }, [id, userId])
 
   const isTeacher = useMemo(
-    () => course && (course.viewer_role === 'teacher' || String(course.author) === String(userId)),
+    () => Boolean(course) && (course.viewer_role === 'teacher' || String(course.author) === String(userId)),
     [course, userId]
   )
 
-  const publishedAssignments = useMemo(() => assignments, [assignments])
-  const publishedQuizzes = useMemo(() => quizzes, [quizzes])
+  const stats = useMemo(() => {
+    if (!course) return []
+    return [
+      { label: 'Modules', value: modules.length },
+      { label: 'Assignments', value: assignments.length },
+      { label: 'Quizzes', value: quizzes.length },
+      { label: 'Announcements', value: announcements.length },
+    ]
+  }, [course, modules, assignments, quizzes, announcements])
+
+  const withAction = async (action, fallback) => {
+    try {
+      await action()
+      setMessage('')
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || fallback)
+    }
+  }
+
+  const loadSubmissions = async (activityId) => {
+    const res = await fetch(`/api/assignments/${activityId}/submissions?user_id=${encodeURIComponent(userId)}`)
+    const data = await safeJson(res)
+    if (!res.ok) throw new Error(getApiErrorMessage(data, 'We could not load the submitted work.'))
+    setSubmissionLists((current) => ({ ...current, [activityId]: Array.isArray(data) ? data : [] }))
+  }
 
   const createModule = async () => {
+    if (!moduleForm.title.trim()) throw new Error('Add a module title before saving.')
     const res = await fetch(`/api/courses/${id}/modules`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...moduleForm, user_id: userId }),
+      body: JSON.stringify({ ...moduleForm, title: moduleForm.title.trim(), description: moduleForm.description.trim(), user_id: userId }),
     })
     const data = await safeJson(res)
-    if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to create module.'))
-    setModuleForm({ title: '', description: '' })
+    if (!res.ok) throw new Error(getApiErrorMessage(data, 'We could not create the lesson.'))
+    setModuleForm(emptyModule)
+    setActiveComposer('')
     await loadCourseWorkspace()
   }
 
   const createAssignment = async () => {
+    if (!assignmentForm.title.trim()) throw new Error('Add an assignment title before publishing.')
     const res = await fetch(`/api/courses/${id}/assignments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...assignmentForm,
-        user_id: userId,
+        title: assignmentForm.title.trim(),
+        instructions: assignmentForm.instructions.trim(),
         due_at: assignmentForm.due_at ? new Date(assignmentForm.due_at).toISOString() : null,
         module_id: assignmentForm.module_id || null,
+        user_id: userId,
       }),
     })
     const data = await safeJson(res)
-    if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to create assignment.'))
-    setAssignmentForm({ title: '', instructions: '', due_at: '', module_id: '', status: 'published' })
+    if (!res.ok) throw new Error(getApiErrorMessage(data, 'We could not create the assignment.'))
+    setAssignmentForm(emptyAssignment)
+    setActiveComposer('')
     await loadCourseWorkspace()
   }
 
   const createQuiz = async () => {
+    if (!quizForm.title.trim()) throw new Error('Add a quiz title before publishing.')
+    const normalizedQuestions = quizForm.questions
+      .map((question) => ({
+        text: String(question.text || '').trim(),
+        options: Array.isArray(question.options) ? question.options.map((option) => String(option || '').trim()) : [],
+        correct: Number.isInteger(question.correct) ? question.correct : 0,
+      }))
+      .filter((question) => question.text && question.options.every(Boolean))
+
+    if (!normalizedQuestions.length) throw new Error('Add at least one complete question before publishing.')
+
     const res = await fetch(`/api/courses/${id}/quizzes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ...quizForm,
-        user_id: userId,
+        title: quizForm.title.trim(),
+        description: quizForm.description.trim(),
         due_at: quizForm.due_at ? new Date(quizForm.due_at).toISOString() : null,
+        status: quizForm.status,
+        questions: normalizedQuestions,
+        user_id: userId,
       }),
     })
     const data = await safeJson(res)
-    if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to create quiz.'))
-    setQuizForm({ title: '', description: '', questions: '', due_at: '', status: 'published' })
+    if (!res.ok) throw new Error(getApiErrorMessage(data, 'We could not create the quiz.'))
+    setQuizForm(createEmptyQuizDraft())
+    setActiveComposer('')
     await loadCourseWorkspace()
   }
 
   const createAnnouncement = async () => {
+    if (!announcementForm.title.trim()) throw new Error('Add an announcement title before publishing.')
     const res = await fetch('/api/notifications', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -161,471 +219,231 @@ export default function CourseDetails() {
         user_id: userId,
         course_id: id,
         type: 'announcement',
-        title: announcementForm.title,
-        body: announcementForm.body,
+        title: announcementForm.title.trim(),
+        body: announcementForm.body.trim(),
       }),
     })
     const data = await safeJson(res)
-    if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to publish announcement.'))
-    setAnnouncementForm({ title: '', body: '' })
+    if (!res.ok) throw new Error(getApiErrorMessage(data, 'We could not post the announcement.'))
+    setAnnouncementForm(emptyAnnouncement)
+    setActiveComposer('')
     await loadCourseWorkspace()
   }
 
-  const submitWork = async (assignmentId) => {
-    const res = await fetch(`/api/assignments/${assignmentId}/submissions`, {
+  const submitWork = async (activityId, contentOverride = null) => {
+    const contentValue = contentOverride ?? (submissionDrafts[activityId] || '')
+    const serializedContent = typeof contentValue === 'string' ? contentValue.trim() : JSON.stringify(contentValue)
+    if (!serializedContent) throw new Error('Add a response before submitting.')
+    const res = await fetch(`/api/assignments/${activityId}/submissions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: userId,
-        content: submissionDrafts[assignmentId] || '',
-      }),
+      body: JSON.stringify({ user_id: userId, content: serializedContent }),
     })
     const data = await safeJson(res)
-    if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to submit work.'))
-    setSubmissionDrafts((current) => ({ ...current, [assignmentId]: '' }))
+    if (!res.ok) throw new Error(getApiErrorMessage(data, 'We could not submit your work.'))
+    setSubmissionDrafts((current) => ({ ...current, [activityId]: '' }))
     await loadCourseWorkspace()
   }
 
-  const loadSubmissions = async (assignmentId) => {
-    const res = await fetch(`/api/assignments/${assignmentId}/submissions?user_id=${encodeURIComponent(userId)}`)
-    const data = await safeJson(res)
-    if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to load submissions.'))
-    setSubmissionLists((current) => ({ ...current, [assignmentId]: Array.isArray(data) ? data : [] }))
-  }
-
-  const gradeSubmission = async (submissionId, assignmentId) => {
+  const gradeSubmission = async (submissionId, activityId) => {
     const draft = gradingDrafts[submissionId] || {}
     const res = await fetch(`/api/submissions/${submissionId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: userId,
-        score: draft.score,
-        feedback: draft.feedback,
-      }),
+      body: JSON.stringify({ user_id: userId, score: draft.score, feedback: draft.feedback }),
     })
     const data = await safeJson(res)
-    if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to grade submission.'))
+    if (!res.ok) throw new Error(getApiErrorMessage(data, 'We could not save the grade.'))
     setGradingDrafts((current) => ({ ...current, [submissionId]: { score: '', feedback: '' } }))
-    await Promise.all([loadCourseWorkspace(), loadSubmissions(assignmentId)])
+    await Promise.all([loadCourseWorkspace(), loadSubmissions(activityId)])
   }
 
-  async function withAction(action, fallbackMessage) {
-    try {
-      await action()
-      setMessage('')
-    } catch (err) {
-      console.error(err)
-      setMessage(err.message || fallbackMessage)
-    }
-  }
-
-  if (loading) {
-    return <Loading message="Loading class..." />
-  }
+  if (loading) return <Loading message="Loading class..." />
 
   if (!course) {
     return (
-      <div className="mx-auto max-w-5xl p-6">
-        <div className="rounded-2xl border border-token bg-surface p-6">
-          <h1 className="text-2xl font-bold text-main">Course not found</h1>
-          <p className="mt-2 text-sm text-muted">{message || 'This class could not be loaded.'}</p>
-        </div>
+      <div className="mx-auto max-w-5xl rounded-[28px] border border-token bg-surface p-6 shadow-sm">
+        <h1 className="text-2xl font-black text-main">Course not found</h1>
+        <p className="mt-2 text-sm text-muted">{message || 'This class could not be loaded.'}</p>
+        <Link to="/courses" className="mt-5 inline-flex rounded-2xl border border-token bg-[#243041] px-4 py-2 text-sm font-semibold text-white">Back to courses</Link>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <div className="rounded-[28px] bg-gradient-to-r from-[#0f3d2e] to-[#14553f] p-8 text-white shadow-lg">
-        <p className="text-sm uppercase tracking-[0.18em] text-white/70">Class Overview</p>
-        <h1 className="mt-2 text-4xl font-extrabold">{course.title}</h1>
-        <p className="mt-3 max-w-2xl text-sm text-white/85">
-          {course.description || 'No course description available.'}
-        </p>
-        <div className="mt-5 flex flex-wrap gap-3 text-sm text-white/85">
-          <span>{course.author_name || 'Unknown teacher'}</span>
-          <span>Code {course.course_code || 'N/A'}</span>
-          <span>{course.published ? 'Published' : 'Draft'}</span>
-          <span>{isTeacher ? 'Teacher view' : 'Student view'}</span>
-        </div>
+    <div className="mx-auto max-w-7xl space-y-6">
+      {/* Page Header with Breadcrumb */}
+      <PageHeader
+        logo="Academee"
+        items={[
+          { label: 'Courses', href: '/courses' },
+          { label: course.title }
+        ]}
+        title={course.title}
+        subtitle={`${course.course_code || 'Code N/A'} • ${course.author_name || 'Unknown teacher'}`}
+      />
+
+      {/* Course Tabs */}
+      <CourseTabs activeTab={activeTab} onChange={setActiveTab} />
+
+      {/* Header Stats */}
+      <div>
+        <HeaderStats stats={stats} />
       </div>
 
-      {message ? (
-        <div className="rounded-2xl border border-token bg-surface p-4 text-sm text-red-600">
-          {message}
-        </div>
+      {/* Message/Error Display */}
+      {message ? <div className="rounded-[24px] border border-token bg-[#fff1f1] p-4 text-sm text-red-700 shadow-sm">{message}</div> : null}
+
+      {isTeacher ? (
+        <Section title="Teacher actions" description="Choose what you want to add, then fill in just that form.">
+          <div className="flex flex-wrap gap-3">
+            {[
+              { key: 'announcement', label: 'Add announcement', tone: 'bg-[#fff7e0]' },
+              { key: 'module', label: 'Add module', tone: 'bg-[#dff4d8]' },
+              { key: 'assignment', label: 'Add assignment', tone: 'bg-[#dbe8ff]' },
+              { key: 'quiz', label: 'Add quiz', tone: 'bg-[#ffe38a]' },
+            ].map((item) => (
+              <button key={item.key} type="button" onClick={() => setActiveComposer((current) => (current === item.key ? '' : item.key))} className={`rounded-2xl border border-token px-4 py-3 text-sm font-semibold text-main shadow-sm transition hover:-translate-y-0.5 ${item.tone} ${activeComposer === item.key ? 'ring-2 ring-[#243041]' : ''}`}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {activeComposer === 'announcement' ? <Composer onCancel={() => setActiveComposer('')} onSubmit={() => withAction(createAnnouncement, 'Failed to publish announcement.')} submitLabel="Publish announcement">
+            <input className="input-base" placeholder="Announcement title" value={announcementForm.title} onChange={(e) => setAnnouncementForm((c) => ({ ...c, title: e.target.value }))} />
+            <textarea className="input-base min-h-[100px]" placeholder="Share an update with this class" value={announcementForm.body} onChange={(e) => setAnnouncementForm((c) => ({ ...c, body: e.target.value }))} />
+          </Composer> : null}
+
+          {activeComposer === 'module' ? <Composer onCancel={() => setActiveComposer('')} onSubmit={() => withAction(createModule, 'Failed to create module.')} submitLabel="Add module">
+            <div className="grid gap-3 md:grid-cols-[1fr_2fr]">
+              <input className="input-base" placeholder="Module title" value={moduleForm.title} onChange={(e) => setModuleForm((c) => ({ ...c, title: e.target.value }))} />
+              <input className="input-base" placeholder="Short description" value={moduleForm.description} onChange={(e) => setModuleForm((c) => ({ ...c, description: e.target.value }))} />
+            </div>
+          </Composer> : null}
+
+          {activeComposer === 'assignment' ? <Composer onCancel={() => setActiveComposer('')} onSubmit={() => withAction(createAssignment, 'Failed to create assignment.')} submitLabel="Add assignment">
+            <input className="input-base" placeholder="Assignment title" value={assignmentForm.title} onChange={(e) => setAssignmentForm((c) => ({ ...c, title: e.target.value }))} />
+            <textarea className="input-base min-h-[100px]" placeholder="Instructions" value={assignmentForm.instructions} onChange={(e) => setAssignmentForm((c) => ({ ...c, instructions: e.target.value }))} />
+            <div className="grid gap-3 md:grid-cols-3">
+              <select className="input-base" value={assignmentForm.module_id} onChange={(e) => setAssignmentForm((c) => ({ ...c, module_id: e.target.value }))}><option value="">No module</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.title}</option>)}</select>
+              <input className="input-base" type="datetime-local" value={assignmentForm.due_at} onChange={(e) => setAssignmentForm((c) => ({ ...c, due_at: e.target.value }))} />
+              <select className="input-base" value={assignmentForm.status} onChange={(e) => setAssignmentForm((c) => ({ ...c, status: e.target.value }))}><option value="published">Publish now</option><option value="draft">Save as draft</option></select>
+            </div>
+          </Composer> : null}
+
+          {activeComposer === 'quiz' ? <Composer onCancel={() => setActiveComposer('')} onSubmit={() => withAction(createQuiz, 'Failed to create quiz.')} submitLabel="Add quiz">
+            <QuizComposer value={quizForm} onChange={setQuizForm} />
+          </Composer> : null}
+        </Section>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        <div className="rounded-2xl border border-token bg-surface p-5">
-          <p className="text-sm text-subtle">Assignments</p>
-          <p className="mt-2 text-lg font-semibold text-main">{course.assignment_count || 0}</p>
+      <Section title="Announcements" description="Course-wide updates stay visible to both teachers and students.">
+        <div className="space-y-3">
+          {announcements.length === 0 ? <EmptyState>No announcements yet.</EmptyState> : null}
+          {announcements.map((item) => <div key={item.id} className="rounded-[24px] border border-token bg-app p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div className="font-semibold text-main">{item.title}</div><span className="text-xs text-muted">{formatDateTime(item.created_at)}</span></div>{item.body ? <p className="mt-2 text-sm leading-7 text-muted">{item.body}</p> : null}</div>)}
         </div>
-        <div className="rounded-2xl border border-token bg-surface p-5">
-          <p className="text-sm text-subtle">Quizzes</p>
-          <p className="mt-2 text-lg font-semibold text-main">{course.quiz_count || 0}</p>
+      </Section>
+
+      <Section title="Modules" description="Organize lessons and activities in the order learners should follow.">
+        <div className="space-y-3">
+          {modules.length === 0 ? <EmptyState>No modules yet.</EmptyState> : null}
+          {modules.map((module, index) => <div key={module.id} className="rounded-[24px] border border-token bg-app p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div className="font-semibold text-main">{module.title}</div><Badge tone={index % 2 === 0 ? 'bg-[#dbe8ff]' : 'bg-[#dff4d8]'}>Lesson</Badge></div>{module.description ? <p className="mt-2 text-sm leading-7 text-muted">{module.description}</p> : null}</div>)}
         </div>
-        <div className="rounded-2xl border border-token bg-surface p-5">
-          <p className="text-sm text-subtle">Learners</p>
-          <p className="mt-2 text-lg font-semibold text-main">{course.student_count || 0}</p>
+      </Section>
+
+      <Section title="Assignments" description="Publish work with due dates and collect submissions inside the course.">
+        <div className="space-y-4">
+          {assignments.length === 0 ? <EmptyState>No assignments yet.</EmptyState> : null}
+          {assignments.map((assignment) => <ActivityCard key={assignment.id} item={assignment} type="assignment" isTeacher={isTeacher} activityId={assignment.id} onLoadSubmissions={loadSubmissions} submissionLists={submissionLists} gradingDrafts={gradingDrafts} setGradingDrafts={setGradingDrafts} onGrade={gradeSubmission} submissionDrafts={submissionDrafts} setSubmissionDrafts={setSubmissionDrafts} onSubmit={submitWork} />)}
         </div>
-        <div className="rounded-2xl border border-token bg-surface p-5">
-          <p className="text-sm text-subtle">Next Due</p>
-          <p className="mt-2 text-lg font-semibold text-main">{formatDateTime(course.next_due_at)}</p>
+      </Section>
+
+      <Section title="Quizzes" description="Build, publish, take, and review richer multiple-choice quizzes inside the course workspace.">
+        <div className="space-y-4">
+          {quizzes.length === 0 ? <EmptyState>No quizzes yet.</EmptyState> : null}
+          {quizzes.map((quiz) => <QuizCard key={quiz.id} quiz={quiz} isTeacher={isTeacher} onLoadSubmissions={loadSubmissions} submissionLists={submissionLists} gradingDrafts={gradingDrafts} setGradingDrafts={setGradingDrafts} onGrade={gradeSubmission} onSubmit={submitWork} />)}
+        </div>
+      </Section>
+    </div>
+  )
+}
+
+function Composer({ children, onCancel, onSubmit, submitLabel }) {
+  return (
+    <div className="mt-5 grid gap-3 rounded-[24px] border border-token bg-app p-4">
+      {children}
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <button type="button" onClick={onCancel} className="rounded-2xl border border-token bg-surface px-4 py-3 text-sm font-semibold text-main">Cancel</button>
+        <button type="button" onClick={onSubmit} className="rounded-2xl border border-token bg-[#243041] px-4 py-3 text-sm font-semibold text-white">{submitLabel}</button>
+      </div>
+    </div>
+  )
+}
+
+function ActivityCard({ item, type, isTeacher, activityId, onLoadSubmissions, submissionLists, gradingDrafts, setGradingDrafts, onGrade, submissionDrafts, setSubmissionDrafts, onSubmit }) {
+  const detailText = `${item.module_title ? `${item.module_title} • ` : ''}Due ${formatDateTime(item.due_at)}`
+
+  return (
+    <div className="rounded-[24px] border border-token bg-app p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><div className="font-semibold text-main">{item.title}</div><div className="mt-1 text-sm text-muted">{detailText}</div></div>
+        <div className="flex flex-wrap items-center gap-2"><Badge tone="bg-[#fffdfa]">{item.status_for_user || item.status}</Badge>{isTeacher ? <Badge tone="bg-[#ffe38a]">{item.pending_review_count || 0} pending</Badge> : null}</div>
+      </div>
+      {item.instructions ? <p className="mt-3 text-sm leading-7 text-muted">{item.instructions}</p> : null}
+
+      {isTeacher ? (
+        <div className="mt-4">
+          <button type="button" onClick={() => onLoadSubmissions(activityId)} className="rounded-2xl border border-token bg-surface px-3 py-2 text-sm font-medium text-main">Review submissions</button>
+          {(submissionLists[activityId] || []).length > 0 ? <div className="mt-4 space-y-3">{(submissionLists[activityId] || []).map((submission) => <div key={submission.id} className="rounded-[22px] border border-token bg-surface p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><div className="font-medium text-main">{submission.student_name}</div><div className="text-xs text-muted">{submission.status} • {formatDateTime(submission.submitted_at)}</div></div><Badge tone="bg-[#edf2ff]">{submission.status}</Badge></div>{submission.content ? <p className="mt-3 text-sm leading-7 text-muted">{submission.content}</p> : null}<div className="mt-3 grid gap-3 md:grid-cols-[140px_1fr_auto]"><input className="input-base" placeholder="Score" value={gradingDrafts[submission.id]?.score ?? ''} onChange={(e) => setGradingDrafts((c) => ({ ...c, [submission.id]: { ...c[submission.id], score: e.target.value } }))} /><input className="input-base" placeholder="Feedback" value={gradingDrafts[submission.id]?.feedback ?? ''} onChange={(e) => setGradingDrafts((c) => ({ ...c, [submission.id]: { ...c[submission.id], feedback: e.target.value } }))} /><button type="button" onClick={() => onGrade(submission.id, activityId)} className="rounded-2xl border border-token bg-[#243041] px-4 py-2 text-sm font-semibold text-white">Save grade</button></div></div>)}</div> : null}
+        </div>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <textarea className="input-base min-h-[110px]" placeholder="Write your submission or paste a link" value={submissionDrafts[activityId] || ''} onChange={(e) => setSubmissionDrafts((c) => ({ ...c, [activityId]: e.target.value }))} />
+          <div className="flex justify-end"><button type="button" onClick={() => onSubmit(activityId)} className="rounded-2xl border border-token bg-[#243041] px-4 py-3 text-sm font-semibold text-white">Submit work</button></div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function QuizCard({ quiz, isTeacher, onLoadSubmissions, submissionLists, gradingDrafts, setGradingDrafts, onGrade, onSubmit }) {
+  const activityId = quiz.assignment_id || quiz.id
+  const questions = normalizeQuizQuestions(quiz?.meta?.questions)
+
+  return (
+    <div className="rounded-[24px] border border-token bg-app p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="font-semibold text-main">{quiz.title}</div>
+          <div className="mt-1 text-sm text-muted">{questions.length || quiz.question_count || 0} questions • Due {formatDateTime(quiz.due_at)}</div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="bg-[#fffdfa]">{quiz.status_for_user || quiz.status}</Badge>
+          {isTeacher ? <Badge tone="bg-[#ffe38a]">{quiz.pending_review_count || 0} pending</Badge> : null}
         </div>
       </div>
 
-      <SectionCard
-        title="Announcements"
-        description="Course-wide updates stay visible to both teachers and students."
-      >
-        {isTeacher ? (
-          <div className="mb-5 grid gap-3 rounded-2xl border border-token bg-app p-4">
-            <input
-              className="input-base"
-              placeholder="Announcement title"
-              value={announcementForm.title}
-              onChange={(event) => setAnnouncementForm((current) => ({ ...current, title: event.target.value }))}
-            />
-            <textarea
-              className="input-base min-h-[100px]"
-              placeholder="Share an update with this class"
-              value={announcementForm.body}
-              onChange={(event) => setAnnouncementForm((current) => ({ ...current, body: event.target.value }))}
-            />
+      {quiz.description ? <p className="mt-3 text-sm leading-7 text-muted">{quiz.description}</p> : null}
+
+      {isTeacher ? (
+        <div className="mt-4">
+          <button type="button" onClick={() => onLoadSubmissions(activityId)} className="rounded-2xl border border-token bg-surface px-3 py-2 text-sm font-medium text-main">Review submissions</button>
+          {(submissionLists[activityId] || []).length > 0 ? <div className="mt-4 space-y-3">{(submissionLists[activityId] || []).map((submission) => <div key={submission.id} className="rounded-[22px] border border-token bg-surface p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><div className="font-medium text-main">{submission.student_name}</div><div className="text-xs text-muted">{submission.status} • {formatDateTime(submission.submitted_at)}</div></div><Badge tone="bg-[#edf2ff]">{submission.status}</Badge></div>{submission.content ? <p className="mt-3 text-sm leading-7 text-muted">{submission.content}</p> : null}<div className="mt-3 grid gap-3 md:grid-cols-[140px_1fr_auto]"><input className="input-base" placeholder="Score" value={gradingDrafts[submission.id]?.score ?? ''} onChange={(e) => setGradingDrafts((c) => ({ ...c, [submission.id]: { ...c[submission.id], score: e.target.value } }))} /><input className="input-base" placeholder="Feedback" value={gradingDrafts[submission.id]?.feedback ?? ''} onChange={(e) => setGradingDrafts((c) => ({ ...c, [submission.id]: { ...c[submission.id], feedback: e.target.value } }))} /><button type="button" onClick={() => onGrade(submission.id, activityId)} className="rounded-2xl border border-token bg-[#243041] px-4 py-2 text-sm font-semibold text-white">Save grade</button></div></div>)}</div> : null}
+        </div>
+      ) : (
+        questions.length ? (
+          <QuizAttemptCard quiz={quiz} submission={quiz.submission} onSubmit={(attempt) => onSubmit(activityId, attempt)} />
+        ) : (
+          <div className="mt-4 space-y-3">
+            <textarea className="input-base min-h-[110px]" placeholder="Write your quiz response" />
             <div className="flex justify-end">
-              <button onClick={() => withAction(createAnnouncement, 'Failed to publish announcement.')} className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white">
-                Publish announcement
+              <button type="button" onClick={() => onSubmit(activityId)} className="rounded-2xl border border-token bg-[#243041] px-4 py-3 text-sm font-semibold text-white">
+                Submit quiz
               </button>
             </div>
           </div>
-        ) : null}
-
-        <div className="space-y-3">
-          {announcements.length === 0 ? <p className="text-sm text-muted">No announcements yet.</p> : null}
-          {announcements.map((item) => (
-            <div key={item.id} className="rounded-xl border border-token p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="font-semibold text-main">{item.title}</div>
-                <span className="text-xs text-muted">{formatDateTime(item.created_at)}</span>
-              </div>
-              {item.body ? <p className="mt-2 text-sm text-muted">{item.body}</p> : null}
-            </div>
-          ))}
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Modules"
-        description="Organize lessons and activities in the order learners should follow them."
-      >
-        {isTeacher ? (
-          <div className="mb-5 grid gap-3 rounded-2xl border border-token bg-app p-4 md:grid-cols-[1fr_2fr_auto]">
-            <input
-              className="input-base"
-              placeholder="Module title"
-              value={moduleForm.title}
-              onChange={(event) => setModuleForm((current) => ({ ...current, title: event.target.value }))}
-            />
-            <input
-              className="input-base"
-              placeholder="Short description"
-              value={moduleForm.description}
-              onChange={(event) => setModuleForm((current) => ({ ...current, description: event.target.value }))}
-            />
-            <button onClick={() => withAction(createModule, 'Failed to create module.')} className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white">
-              Add module
-            </button>
-          </div>
-        ) : null}
-
-        <div className="space-y-3">
-          {modules.length === 0 ? <p className="text-sm text-muted">No modules yet.</p> : null}
-          {modules.map((module) => (
-            <div key={module.id} className="rounded-xl border border-token p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="font-semibold text-main">{module.title}</div>
-                <ItemBadge>Lesson</ItemBadge>
-              </div>
-              {module.description ? <p className="mt-2 text-sm text-muted">{module.description}</p> : null}
-            </div>
-          ))}
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Assignments"
-        description="Publish work with due dates and collect submissions directly inside the course."
-      >
-        {isTeacher ? (
-          <div className="mb-5 grid gap-3 rounded-2xl border border-token bg-app p-4">
-            <input
-              className="input-base"
-              placeholder="Assignment title"
-              value={assignmentForm.title}
-              onChange={(event) => setAssignmentForm((current) => ({ ...current, title: event.target.value }))}
-            />
-            <textarea
-              className="input-base min-h-[100px]"
-              placeholder="Instructions"
-              value={assignmentForm.instructions}
-              onChange={(event) => setAssignmentForm((current) => ({ ...current, instructions: event.target.value }))}
-            />
-            <div className="grid gap-3 md:grid-cols-3">
-              <select
-                className="input-base"
-                value={assignmentForm.module_id}
-                onChange={(event) => setAssignmentForm((current) => ({ ...current, module_id: event.target.value }))}
-              >
-                <option value="">No module</option>
-                {modules.map((module) => <option key={module.id} value={module.id}>{module.title}</option>)}
-              </select>
-              <input
-                className="input-base"
-                type="datetime-local"
-                value={assignmentForm.due_at}
-                onChange={(event) => setAssignmentForm((current) => ({ ...current, due_at: event.target.value }))}
-              />
-              <select
-                className="input-base"
-                value={assignmentForm.status}
-                onChange={(event) => setAssignmentForm((current) => ({ ...current, status: event.target.value }))}
-              >
-                <option value="published">Publish now</option>
-                <option value="draft">Save as draft</option>
-              </select>
-            </div>
-            <div className="flex justify-end">
-              <button onClick={() => withAction(createAssignment, 'Failed to create assignment.')} className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white">
-                Add assignment
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="space-y-4">
-          {publishedAssignments.length === 0 ? <p className="text-sm text-muted">No assignments yet.</p> : null}
-          {publishedAssignments.map((assignment) => (
-            <div key={assignment.id} className="rounded-xl border border-token p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="font-semibold text-main">{assignment.title}</div>
-                  <div className="text-sm text-muted mt-1">
-                    {assignment.module_title ? `${assignment.module_title} • ` : ''}Due {formatDateTime(assignment.due_at)}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ItemBadge>{assignment.status_for_user || assignment.status}</ItemBadge>
-                  {isTeacher ? <ItemBadge>{assignment.pending_review_count || 0} pending</ItemBadge> : null}
-                </div>
-              </div>
-              {assignment.instructions ? <p className="mt-3 text-sm text-muted">{assignment.instructions}</p> : null}
-
-              {isTeacher ? (
-                <div className="mt-4">
-                  <button
-                    onClick={() => withAction(() => loadSubmissions(assignment.id), 'Failed to load submissions.')}
-                    className="rounded-lg border border-token px-3 py-2 text-sm"
-                  >
-                    Review submissions
-                  </button>
-
-                  {(submissionLists[assignment.id] || []).length > 0 ? (
-                    <div className="mt-4 space-y-3">
-                      {(submissionLists[assignment.id] || []).map((submission) => (
-                        <div key={submission.id} className="rounded-xl border border-token bg-app p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="font-medium text-main">{submission.student_name}</div>
-                              <div className="text-xs text-muted">{submission.status} • {formatDateTime(submission.submitted_at)}</div>
-                            </div>
-                            <ItemBadge>{submission.status}</ItemBadge>
-                          </div>
-                          {submission.content ? <p className="mt-3 text-sm text-muted">{submission.content}</p> : null}
-                          <div className="mt-3 grid gap-3 md:grid-cols-[140px_1fr_auto]">
-                            <input
-                              className="input-base"
-                              placeholder="Score"
-                              value={gradingDrafts[submission.id]?.score ?? ''}
-                              onChange={(event) => setGradingDrafts((current) => ({ ...current, [submission.id]: { ...current[submission.id], score: event.target.value } }))}
-                            />
-                            <input
-                              className="input-base"
-                              placeholder="Feedback"
-                              value={gradingDrafts[submission.id]?.feedback ?? ''}
-                              onChange={(event) => setGradingDrafts((current) => ({ ...current, [submission.id]: { ...current[submission.id], feedback: event.target.value } }))}
-                            />
-                            <button onClick={() => withAction(() => gradeSubmission(submission.id, assignment.id), 'Failed to grade submission.')} className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white">
-                              Save grade
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {assignment.submission ? (
-                    <div className="rounded-xl border border-token bg-app p-4 text-sm text-muted">
-                      Status: <span className="font-semibold text-main">{assignment.submission.status}</span>
-                      {assignment.submission.score != null ? ` • Score: ${assignment.submission.score}` : ''}
-                      {assignment.submission.feedback ? ` • Feedback: ${assignment.submission.feedback}` : ''}
-                    </div>
-                  ) : null}
-                  <textarea
-                    className="input-base min-h-[110px]"
-                    placeholder="Write your submission or paste a link"
-                    value={submissionDrafts[assignment.id] || ''}
-                    onChange={(event) => setSubmissionDrafts((current) => ({ ...current, [assignment.id]: event.target.value }))}
-                  />
-                  <div className="flex justify-end">
-                    <button onClick={() => withAction(() => submitWork(assignment.id), 'Failed to submit work.')} className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white">
-                      Submit work
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Quizzes"
-        description="Post quiz prompts with due dates and reuse the same submission and grading flow."
-      >
-        {isTeacher ? (
-          <div className="mb-5 grid gap-3 rounded-2xl border border-token bg-app p-4">
-            <input
-              className="input-base"
-              placeholder="Quiz title"
-              value={quizForm.title}
-              onChange={(event) => setQuizForm((current) => ({ ...current, title: event.target.value }))}
-            />
-            <textarea
-              className="input-base min-h-[90px]"
-              placeholder="Quiz description"
-              value={quizForm.description}
-              onChange={(event) => setQuizForm((current) => ({ ...current, description: event.target.value }))}
-            />
-            <textarea
-              className="input-base min-h-[110px]"
-              placeholder="One question per line"
-              value={quizForm.questions}
-              onChange={(event) => setQuizForm((current) => ({ ...current, questions: event.target.value }))}
-            />
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                className="input-base"
-                type="datetime-local"
-                value={quizForm.due_at}
-                onChange={(event) => setQuizForm((current) => ({ ...current, due_at: event.target.value }))}
-              />
-              <select
-                className="input-base"
-                value={quizForm.status}
-                onChange={(event) => setQuizForm((current) => ({ ...current, status: event.target.value }))}
-              >
-                <option value="published">Publish now</option>
-                <option value="draft">Save as draft</option>
-              </select>
-            </div>
-            <div className="flex justify-end">
-              <button onClick={() => withAction(createQuiz, 'Failed to create quiz.')} className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white">
-                Add quiz
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="space-y-4">
-          {publishedQuizzes.length === 0 ? <p className="text-sm text-muted">No quizzes yet.</p> : null}
-          {publishedQuizzes.map((quiz) => (
-            <div key={quiz.id} className="rounded-xl border border-token p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="font-semibold text-main">{quiz.title}</div>
-                  <div className="text-sm text-muted mt-1">
-                    {quiz.question_count || 0} questions • Due {formatDateTime(quiz.due_at)}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ItemBadge>{quiz.status_for_user || quiz.status}</ItemBadge>
-                  {isTeacher ? <ItemBadge>{quiz.pending_review_count || 0} pending</ItemBadge> : null}
-                </div>
-              </div>
-              {quiz.description ? <p className="mt-3 text-sm text-muted">{quiz.description}</p> : null}
-              {isTeacher ? (
-                <div className="mt-4">
-                  <button
-                    onClick={() => withAction(() => loadSubmissions(quiz.assignment_id), 'Failed to load submissions.')}
-                    className="rounded-lg border border-token px-3 py-2 text-sm"
-                  >
-                    Review submissions
-                  </button>
-
-                  {(submissionLists[quiz.assignment_id] || []).length > 0 ? (
-                    <div className="mt-4 space-y-3">
-                      {(submissionLists[quiz.assignment_id] || []).map((submission) => (
-                        <div key={submission.id} className="rounded-xl border border-token bg-app p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="font-medium text-main">{submission.student_name}</div>
-                              <div className="text-xs text-muted">{submission.status} • {formatDateTime(submission.submitted_at)}</div>
-                            </div>
-                            <ItemBadge>{submission.status}</ItemBadge>
-                          </div>
-                          {submission.content ? <p className="mt-3 text-sm text-muted">{submission.content}</p> : null}
-                          <div className="mt-3 grid gap-3 md:grid-cols-[140px_1fr_auto]">
-                            <input
-                              className="input-base"
-                              placeholder="Score"
-                              value={gradingDrafts[submission.id]?.score ?? ''}
-                              onChange={(event) => setGradingDrafts((current) => ({ ...current, [submission.id]: { ...current[submission.id], score: event.target.value } }))}
-                            />
-                            <input
-                              className="input-base"
-                              placeholder="Feedback"
-                              value={gradingDrafts[submission.id]?.feedback ?? ''}
-                              onChange={(event) => setGradingDrafts((current) => ({ ...current, [submission.id]: { ...current[submission.id], feedback: event.target.value } }))}
-                            />
-                            <button onClick={() => withAction(() => gradeSubmission(submission.id, quiz.assignment_id), 'Failed to grade submission.')} className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white">
-                              Save grade
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {quiz.submission ? (
-                    <div className="rounded-xl border border-token bg-app p-4 text-sm text-muted">
-                      Quiz status: <span className="font-semibold text-main">{quiz.submission.status}</span>
-                      {quiz.submission.score != null ? ` • Score: ${quiz.submission.score}` : ''}
-                      {quiz.submission.feedback ? ` • Feedback: ${quiz.submission.feedback}` : ''}
-                    </div>
-                  ) : null}
-                  <textarea
-                    className="input-base min-h-[110px]"
-                    placeholder="Write your quiz response"
-                    value={submissionDrafts[quiz.assignment_id] || ''}
-                    onChange={(event) => setSubmissionDrafts((current) => ({ ...current, [quiz.assignment_id]: event.target.value }))}
-                  />
-                  <div className="flex justify-end">
-                    <button onClick={() => withAction(() => submitWork(quiz.assignment_id), 'Failed to submit quiz.')} className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white">
-                      Submit quiz
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </SectionCard>
+        )
+      )}
     </div>
   )
 }

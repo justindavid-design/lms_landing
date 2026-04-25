@@ -41,9 +41,9 @@ export default function LogoutButton({ isOpen = true }){
     <button
       onClick={handleLogout}
       disabled={loading}
-      className={`w-full rounded-md hover-surface transition-colors text-muted ${
-        isOpen ? 'flex items-center gap-4 px-6 py-3 text-left' : 'flex items-center justify-center px-0 py-3'
-      }`}
+      className={`flex items-center gap-4 cursor-pointer transition-all text-muted hover-surface ${
+        isOpen ? 'px-4' : 'px-6 justify-center'
+      } py-3`}
     >
       <DynamicSvgIcon src="/src/assets/logout.svg" className="opacity-70" />
       {isOpen && (

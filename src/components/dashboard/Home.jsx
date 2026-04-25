@@ -7,8 +7,22 @@ import TodoWidget from './TodoWidget'
 import Notifications from '../Notifications'
 import { useAuth } from '../../lib/AuthProvider'
 import { safeJson } from '../courses/utils'
+import defaultCourseImage from '../../assets/course.png'
 
-export default function Home(){
+const welcomeQuotes = [
+  'Every lesson you open is another step forward.',
+  'Small progress today becomes real confidence tomorrow.',
+  'Keep showing up. Consistency turns effort into mastery.',
+  'Your learning space is ready for another meaningful win.',
+  'Teach with clarity, learn with courage, and keep moving.',
+  'One focused session can change the shape of your whole week.',
+]
+
+function SurfaceCard({ className = '', children }) {
+  return <div className={`rounded-lg border border-token bg-surface shadow-sm ${className}`}>{children}</div>
+}
+
+export default function Home() {
   const navigate = useNavigate()
   const { user, profileName, isVisible } = useAuth()
   const displayName = profileName || user?.user_metadata?.display_name || user?.user_metadata?.full_name || 'Academee Student'
@@ -17,6 +31,12 @@ export default function Home(){
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [welcomeQuote, setWelcomeQuote] = useState(welcomeQuotes[0])
+
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * welcomeQuotes.length)
+    setWelcomeQuote(welcomeQuotes[randomIndex])
+  }, [user?.id])
 
   useEffect(() => {
     let active = true
@@ -43,8 +63,9 @@ export default function Home(){
         if (!taskRes.ok) throw new Error(taskData?.error || 'Failed to load tasks.')
 
         if (!active) return
-        setCourses(Array.isArray(courseData) ? courseData.slice(0, 3) : [])
+        setCourses(Array.isArray(courseData) ? courseData.slice(0, 4) : [])
         setTasks(Array.isArray(taskData) ? taskData : [])
+        setError('')
       } catch (err) {
         console.error(err)
         if (!active) return
@@ -57,7 +78,9 @@ export default function Home(){
     }
 
     loadDashboard()
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [user?.id])
 
   const teachingCount = useMemo(
@@ -81,64 +104,109 @@ export default function Home(){
   )
 
   return (
-    <div className={`grid grid-cols-12 gap-6 ${isVisible ? 'opacity-100 translate-y-0 transition-all duration-300' : 'opacity-0 translate-y-2'}`}>
-      <div className="col-span-12 xl:col-span-8">
-        <div className="bg-surface rounded-2xl p-6 mb-6 border border-token shadow-sm relative overflow-visible">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-2xl font-bold">Hello, {displayName}!</h3>
-              <p className="text-muted">Your classroom snapshot now includes live courses, deadlines, and grading activity.</p>
+    <div className={`grid grid-cols-12 gap-5 md:gap-6 ${isVisible ? 'translate-y-0 opacity-100 transition-all duration-300' : 'translate-y-2 opacity-0'}`}>
+      <div className="col-span-12 space-y-5 xl:col-span-8">
+        <SurfaceCard className="relative overflow-hidden p-6 md:p-8">
+          <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+            <div className="max-w-2xl">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-subtle">Classroom overview</p>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-main md:text-4xl">
+                Hello, {displayName}. {welcomeQuote}
+              </h2>
+              <p className="mt-4 max-w-xl text-[15px] leading-7 text-muted md:text-base md:leading-8">
+                Check upcoming work, open active classes, and jump back into the course module without digging through menus.
+              </p>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => navigate('/courses')}
+                  className="rounded-lg border border-token bg-[#111827] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#374151]"
+                >
+                  Open courses
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/tasks')}
+                  className="rounded-lg border border-token bg-white px-5 py-3 text-sm font-semibold text-main transition hover-surface"
+                >
+                  Review tasks
+                </button>
+              </div>
             </div>
-            <div aria-hidden className="w-24 hidden md:block" />
+
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <div className="rounded-lg border border-token bg-white p-4">
+                <div className="text-xs font-bold uppercase tracking-[0.14em] text-subtle">Courses</div>
+                <div className="mt-2 text-2xl font-extrabold text-main">{courses.length}</div>
+                <div className="mt-1 text-sm text-muted">Active classroom spaces</div>
+              </div>
+              <div className="rounded-lg border border-token bg-white p-4">
+                <div className="text-xs font-bold uppercase tracking-[0.14em] text-subtle">Due soon</div>
+                <div className="mt-2 text-2xl font-extrabold text-main">{dueSoonCount}</div>
+                <div className="mt-1 text-sm text-muted">Items needing attention</div>
+              </div>
+              <div className="rounded-lg border border-token bg-white p-4">
+                <div className="text-xs font-bold uppercase tracking-[0.14em] text-subtle">Reviews</div>
+                <div className="mt-2 text-2xl font-extrabold text-main">{reviewCount}</div>
+                <div className="mt-1 text-sm text-muted">Pending teacher feedback</div>
+              </div>
+            </div>
           </div>
-          <img src="/src/assets/b.png" alt="avatar" className="absolute right-4 -top-6 w-32 h-32 object-contain hidden md:block" />
-        </div>
 
-        <div className="bg-surface rounded-2xl p-6 mb-6 border border-token shadow-sm flex items-center justify-between gap-4">
-          <div>
-            <div className="text-sm text-muted">Classroom center</div>
-            <div className="font-semibold">Open a course to publish lessons, review submissions, or turn in work.</div>
+
+        </SurfaceCard>
+
+        <HeaderStats
+          stats={[
+            { label: 'Teaching', value: teachingCount, onClick: () => navigate('/courses') },
+            { label: 'Enrolled', value: enrolledCount, onClick: () => navigate('/courses') },
+            { label: 'Due Soon', value: dueSoonCount, onClick: () => navigate('/tasks') },
+            { label: 'Pending Reviews', value: reviewCount, onClick: () => navigate('/tasks') },
+          ]}
+        />
+
+        <SurfaceCard className="p-5 md:p-6">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-subtle">Recent courses</p>
+              <h3 className="mt-2 text-xl font-bold text-main">Continue where you left off</h3>
+            </div>
+            <button type="button" onClick={() => navigate('/courses')} className="text-sm font-semibold text-main underline-offset-4 hover:underline">
+              View all
+            </button>
           </div>
-          <button onClick={() => navigate('/courses')} className="px-4 py-2 bg-black text-white rounded-md">Open courses</button>
-        </div>
 
-        <HeaderStats stats={[
-          { label: 'Teaching', value: teachingCount, onClick: () => navigate('/courses') },
-          { label: 'Enrolled', value: enrolledCount, onClick: () => navigate('/courses') },
-          { label: 'Due Soon', value: dueSoonCount, onClick: () => navigate('/tasks') },
-          { label: 'Pending Reviews', value: reviewCount, onClick: () => navigate('/tasks') },
-        ]} />
-
-        <div className="my-6 flex items-center justify-between">
-          <h4 className="text-lg font-semibold">Recent Courses</h4>
-          <button onClick={() => navigate('/courses')} className="text-sm text-muted">View all</button>
-        </div>
-
-        <div className="space-y-4">
-          {loading ? (
-            <div className="rounded-xl border border-token bg-surface p-4 text-sm text-muted">Loading courses...</div>
-          ) : error ? (
-            <div className="rounded-xl border border-token bg-surface p-4 text-sm text-red-600">{error}</div>
-          ) : courses.length === 0 ? (
-            <div className="rounded-xl border border-token bg-surface p-4 text-sm text-muted">You have no classes yet. Create or join one to get started.</div>
-          ) : (
-            courses.map((course) => (
-              <CourseCard
-                key={course.id}
-                course={{
-                  id: course.id,
-                  image: course.cover_image || '/src/assets/course.png',
-                  title: course.title,
-                  author: course.author_name || 'Teacher',
-                  length: course.next_activity_title || (String(course.author) === String(user?.id) ? 'Teaching' : 'Enrolled'),
-                }}
-              />
-            ))
-          )}
-        </div>
+          <div className="space-y-4">
+            {loading ? (
+              <div className="rounded-lg border border-token bg-app p-4 text-sm text-muted">Loading courses...</div>
+            ) : error ? (
+              <div className="rounded-lg border border-token bg-[#fff1f1] p-4 text-sm text-red-700">{error}</div>
+            ) : courses.length === 0 ? (
+              <div className="rounded-lg border border-token bg-app p-4 text-sm text-muted">
+                You have no classes yet. Create or join one to get started.
+              </div>
+            ) : (
+              courses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={{
+                    id: course.id,
+                    image: course.cover_image || defaultCourseImage,
+                    title: course.title,
+                    author: course.author_name || 'Teacher',
+                    length:
+                      course.next_activity_title ||
+                      (String(course.author) === String(user?.id) ? 'Teaching' : 'Enrolled'),
+                  }}
+                />
+              ))
+            )}
+          </div>
+        </SurfaceCard>
       </div>
 
-      <div className="col-span-12 xl:col-span-4 space-y-4">
+      <div className="col-span-12 space-y-4 xl:col-span-4">
         <StatsChart />
         <TodoWidget />
         <Notifications />

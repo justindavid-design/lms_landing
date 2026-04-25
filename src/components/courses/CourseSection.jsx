@@ -14,8 +14,8 @@ export default function CourseSection({
   return (
     <section>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-main">{title}</h2>
-        <span className="text-sm text-subtle">
+        <h2 className="text-2xl font-black tracking-[-0.03em] text-main">{title}</h2>
+        <span className="rounded-full border border-token bg-surface px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-subtle">
           {items.length} class{items.length === 1 ? '' : 'es'}
         </span>
       </div>
@@ -30,7 +30,7 @@ export default function CourseSection({
           onDelete={onDelete}
         />
       ) : (
-        <div className="rounded-2xl border border-token bg-surface p-5 text-sm text-muted">
+        <div className="rounded-lg border border-token bg-surface p-5 text-sm text-muted">
           {emptyText}
         </div>
       )}

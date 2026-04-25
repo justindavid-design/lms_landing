@@ -8,27 +8,28 @@ export default function EnrollForm({
   onCancel,
 }) {
   return (
-    <div className="max-w-md space-y-4 rounded-2xl border border-token bg-surface p-5">
-      <p className="text-sm text-muted">
+    <div className="max-w-xl space-y-4 rounded-lg border border-token bg-app p-5">
+      <p className="text-sm leading-7 text-muted">
         Ask your teacher for the class code, then enter it here.
       </p>
 
       <input
-        className="w-full rounded-xl border-2 border-token bg-surface p-4 text-lg uppercase tracking-widest outline-none focus:border-green-600"
+        className="w-full rounded-lg border border-token bg-surface p-4 text-lg uppercase tracking-[0.2em] outline-none focus:border-gray-700"
         placeholder="Class code"
         value={enrollCode}
         onChange={(e) => setEnrollCode(e.target.value)}
       />
 
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <button
+          type="button"
           onClick={onJoin}
-          className="rounded-xl bg-green-700 px-5 py-2 font-medium text-white hover:bg-green-800"
+          className="rounded-lg bg-[#111827] px-5 py-3 font-medium text-white hover:bg-[#374151]"
         >
           Join
         </button>
 
-        <button onClick={onCancel} className="rounded-xl px-5 py-2 text-muted hover-surface">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-token bg-surface px-5 py-3 text-main hover-surface">
           Cancel
         </button>
       </div>

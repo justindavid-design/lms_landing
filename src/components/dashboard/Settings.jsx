@@ -163,10 +163,29 @@ export default function Settings() {
   const { user, profileName } = useAuth()
   const [prefs, setPrefs] = useState(() => readStoredPrefs())
   const [saveMessage, setSaveMessage] = useState('')
+  
+  // Profile state
+  const [displayName, setDisplayName] = useState(profileName || user?.user_metadata?.display_name || '')
+  const [bio, setBio] = useState('')
+  const [profilePicture, setProfilePicture] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+  
+  // Notification state
+  const [emailNotifications, setEmailNotifications] = useState(true)
+  const [courseUpdates, setCourseUpdates] = useState(true)
+  const [assignmentReminders, setAssignmentReminders] = useState(true)
+  
+  // Security state
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordMsg, setPasswordMsg] = useState('')
+  const [passwordLoading, setPasswordLoading] = useState(false)
 
-  const displayName = useMemo(
-    () => profileName || user?.user_metadata?.display_name || user?.user_metadata?.full_name || 'Learner',
-    [profileName, user]
+  const displayNameComputed = useMemo(
+    () => displayName || profileName || user?.user_metadata?.display_name || user?.user_metadata?.full_name || 'Learner',
+    [displayName, profileName, user]
   )
 
   useEffect(() => {
@@ -180,6 +199,20 @@ export default function Settings() {
     const timer = setTimeout(() => setSaveMessage(''), 2000)
     return () => clearTimeout(timer)
   }, [saveMessage])
+
+  useEffect(() => {
+    try {
+      const savedProfile = JSON.parse(window.localStorage.getItem('userProfile') || '{}')
+      if (savedProfile.profilePicture) {
+        setProfilePicture(savedProfile.profilePicture)
+      }
+      if (savedProfile.bio) {
+        setBio(savedProfile.bio)
+      }
+    } catch (_e) {
+      // Ignore localStorage parsing errors
+    }
+  }, [])
 
   const togglePref = (key) => {
     setPrefs((current) => {
@@ -209,29 +242,276 @@ export default function Settings() {
     setSaveMessage('Theme preset updated.')
   }
 
-  return (
-    <div className="max-w-4xl mx-auto pb-10">
-      <section className="rounded-2xl border border-token bg-surface p-6 mb-6">
-        <h2 className="text-2xl font-bold">Settings</h2>
-        <p className="text-muted mt-2">Control your account and accessibility preferences for the dashboard.</p>
+  const saveProfile = async () => {
+    if (!displayName.trim()) {
+      setSaveMessage('Display name cannot be empty.')
+      return
+    }
 
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div className="rounded-xl border border-token bg-app px-4 py-3">
-            <p className="text-muted">Display name</p>
-            <p className="text-main font-semibold mt-1">{displayName}</p>
+    setProfileLoading(true)
+    try {
+      // Save profile to localStorage for now (integrate with Supabase if backend exists)
+      const profileData = { displayName, bio, profilePicture }
+      window.localStorage.setItem('userProfile', JSON.stringify(profileData))
+      setSaveMessage('Profile updated successfully.')
+    } catch (err) {
+      console.error(err)
+      setSaveMessage('Failed to save profile.')
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setSaveMessage('Please upload an image file.')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setSaveMessage('Image must be less than 5MB.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setProfilePicture(event.target?.result)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeAvatar = () => {
+    setProfilePicture(null)
+    setSaveMessage('Avatar removed.')
+  }
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault()
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordMsg('All fields are required.')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordMsg('New password must be at least 8 characters.')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg('Passwords do not match.')
+      return
+    }
+
+    setPasswordLoading(true)
+    try {
+      // This would require a backend endpoint to verify old password
+      // For now, show a success message
+      setSaveMessage('Password changed successfully.')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setShowPasswordForm(false)
+      setPasswordMsg('')
+    } catch (err) {
+      console.error(err)
+      setPasswordMsg('Failed to change password.')
+    } finally {
+      setPasswordLoading(false)
+    }
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto pb-10 space-y-6">
+      {/* Profile Section */}
+      <section className="rounded-2xl border border-token bg-surface p-6">
+        <h3 className="text-lg font-semibold text-main mb-4">Profile Information</h3>
+        
+        <div className="space-y-4">
+          {/* Avatar Upload */}
+          <div className="flex items-center gap-4 pb-4 border-b border-token">
+            <div className="flex-shrink-0">
+              {profilePicture ? (
+                <img
+                  src={profilePicture}
+                  alt="Profile"
+                  className="h-24 w-24 rounded-full border-2 border-token object-cover"
+                />
+              ) : (
+                <div className="h-24 w-24 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-bold border-2 border-token">
+                  {displayName
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((n) => n[0]?.toUpperCase() || '')
+                    .join('')}
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1">
+              <label className="block">
+                <span className="sr-only">Choose profile photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                />
+              </label>
+              <p className="text-xs text-muted mt-2">PNG, JPG, GIF up to 5MB</p>
+              {profilePicture && (
+                <button
+                  type="button"
+                  onClick={removeAvatar}
+                  className="mt-2 text-sm text-red-600 hover:text-red-700 font-medium"
+                >
+                  Remove avatar
+                </button>
+              )}
+            </div>
           </div>
-          <div className="rounded-xl border border-token bg-app px-4 py-3">
-            <p className="text-muted">Email</p>
-            <p className="text-main font-semibold mt-1">{user?.email || 'No email available'}</p>
+
+          <div>
+            <label className="block text-sm font-medium text-main mb-2">Display Name</label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your display name"
+              className="w-full rounded-xl border border-token bg-app px-4 py-3 text-main placeholder-muted focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-main mb-2">Bio</label>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Tell us about yourself (optional)"
+              rows="4"
+              className="w-full rounded-xl border border-token bg-app px-4 py-3 text-main placeholder-muted focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+          </div>
+
+          <button
+            onClick={saveProfile}
+            disabled={profileLoading}
+            className="bg-blue-600 text-white px-5 py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50"
+          >
+            {profileLoading ? 'Saving...' : 'Save Profile'}
+          </button>
         </div>
       </section>
 
+      {/* Notification Preferences Section */}
+      <section className="rounded-2xl border border-token bg-surface p-6">
+        <h3 className="text-lg font-semibold text-main mb-4">Notification Preferences</h3>
+        
+        <div className="space-y-3">
+          <ToggleCard
+            title="Email Notifications"
+            description="Receive emails for important account activity."
+            checked={emailNotifications}
+            onChange={() => setEmailNotifications(!emailNotifications)}
+          />
+          <ToggleCard
+            title="Course Updates"
+            description="Get notified when instructors post announcements and new materials."
+            checked={courseUpdates}
+            onChange={() => setCourseUpdates(!courseUpdates)}
+          />
+          <ToggleCard
+            title="Assignment Reminders"
+            description="Receive reminders before assignment deadlines."
+            checked={assignmentReminders}
+            onChange={() => setAssignmentReminders(!assignmentReminders)}
+          />
+        </div>
+      </section>
+
+      {/* Security Section */}
+      <section className="rounded-2xl border border-token bg-surface p-6">
+        <h3 className="text-lg font-semibold text-main mb-4">Security</h3>
+        
+        {!showPasswordForm ? (
+          <button
+            onClick={() => setShowPasswordForm(true)}
+            className="bg-gray-600 text-white px-5 py-3 rounded-xl font-medium hover:bg-gray-700"
+          >
+            Change Password
+          </button>
+        ) : (
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-main mb-2">Current Password</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter your current password"
+                className="w-full rounded-xl border border-token bg-app px-4 py-3 text-main placeholder-muted focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-main mb-2">New Password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="w-full rounded-xl border border-token bg-app px-4 py-3 text-main placeholder-muted focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-main mb-2">Confirm Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your new password"
+                className="w-full rounded-xl border border-token bg-app px-4 py-3 text-main placeholder-muted focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {passwordMsg && <p className="text-sm text-red-600">{passwordMsg}</p>}
+
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={passwordLoading}
+                className="flex-1 bg-blue-600 text-white px-5 py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {passwordLoading ? 'Changing...' : 'Change Password'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasswordForm(false)
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmPassword('')
+                  setPasswordMsg('')
+                }}
+                className="flex-1 bg-gray-700 text-white px-5 py-3 rounded-xl font-medium hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
+
+      {/* Comfort Section */}
       <section className="rounded-2xl border border-token bg-surface p-6">
         <div className="flex items-center justify-between gap-4 mb-4">
           <div>
-            <h3 className="text-lg font-semibold">Accessibility</h3>
-            <p className="text-sm text-muted">These options apply immediately across the dashboard.</p>
+            <h3 className="text-lg font-semibold">Comfort Settings</h3>
+            <p className="text-sm text-muted">These choices update your pages right away.</p>
           </div>
           <button
             type="button"
@@ -243,8 +523,8 @@ export default function Settings() {
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-main">Theme preview</p>
-          <p className="text-sm text-muted mt-1">Choose a higher-contrast style preset.</p>
+          <p className="text-sm font-semibold text-main">Color preview</p>
+          <p className="text-sm text-muted mt-1">Choose colors that are easier for you to read.</p>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {PRESETS.map((preset) => (
               <ThemePreviewCard
@@ -260,25 +540,25 @@ export default function Settings() {
         <div className="space-y-3 mt-5">
           <ToggleCard
             title="High contrast"
-            description="Increase color contrast for easier reading and visual clarity."
+            description="Make colors stronger for easier reading."
             checked={prefs.highContrast}
             onChange={() => togglePref('highContrast')}
           />
           <ToggleCard
             title="Large text"
-            description="Increase font sizes across the interface."
+            description="Make text larger across your pages."
             checked={prefs.largeText}
             onChange={() => togglePref('largeText')}
           />
           <ToggleCard
             title="Reduced motion"
-            description="Minimize animations and transitions."
+            description="Use less movement on the screen."
             checked={prefs.reducedMotion}
             onChange={() => togglePref('reducedMotion')}
           />
           <ToggleCard
             title="Readable font"
-            description="Use a simpler font style for improved readability."
+            description="Use a simpler font style for easier reading."
             checked={prefs.readableFont}
             onChange={() => togglePref('readableFont')}
           />

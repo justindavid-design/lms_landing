@@ -27,10 +27,19 @@ async function sendMail(to, subject, text) {
     host,
     port: Number(port),
     secure: Number(port) === 465,
+    requireTLS: true,
     auth: { user, pass },
   })
 
-  await transporter.sendMail({ from, to, subject, text })
+  try {
+    await transporter.sendMail({ from, to, subject, text })
+  } catch (err) {
+    const raw = String(err?.message || err || '')
+    if (raw.includes('535-5.7.8') || raw.toLowerCase().includes('badcredentials')) {
+      throw new Error('SMTP authentication failed. Check your Gmail address and use a valid Google App Password.')
+    }
+    throw err
+  }
 }
 
 async function findUserByEmail(email) {

@@ -8,16 +8,29 @@
 
 /* Custom styles to match the design */
 :root{
-  --accent: #688668; /* primary color */
-  --accent-2: #0ea5a4; /* secondary teal accent */
+  --accent: #3d6af2;
+  --accent-2: #ff8a5b;
   --text: #0b0b0b;
   --muted: #6b7280;
   --bg: #ffffff;
+  --neo-yellow: #fff0a8;
+  --neo-blue: #dfeaff;
+  --neo-red: #ff8a5b;
+  --neo-green: #e8f3de;
+  --neo-ink: #1d2433;
+  --neo-paper: #fffdfa;
+  --landing-action: #2f6b3f;
+  --landing-action-hover: #255833;
+  --landing-focus: #1d4ed8;
+  --landing-radius-lg: 8px;
+  --landing-radius-md: 8px;
+  --landing-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --landing-shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 
 /* Global font */
 body{
-  font-family: Poppins, sans-serif, Montserrat, sans-serif;
+  font-family: Nunito, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .hero-gradient{
@@ -38,12 +51,137 @@ body{
     @apply bg-surface rounded-xl-card soft-shadow p-8 md:p-10;
   }
 
+  .public-card {
+    @apply bg-surface border border-token;
+    border-radius: var(--landing-radius-lg);
+    box-shadow: var(--landing-shadow);
+  }
+
+  .section-shell {
+    @apply px-4 md:px-10 lg:px-16;
+  }
+
+  .section-kicker {
+    @apply inline-flex items-center gap-2 rounded-md border border-token bg-surface-alt px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-main;
+    box-shadow: var(--landing-shadow-soft);
+  }
+
+  .section-title {
+    @apply mt-5 text-[2.2rem] md:text-6xl font-black leading-[1] tracking-[-0.04em] text-main;
+  }
+
+  .section-copy {
+    @apply mt-4 max-w-3xl text-[15px] md:text-lg font-medium leading-7 md:leading-8 text-muted;
+  }
+
   .input-base {
-    @apply w-full border border-neutral-muted rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent/80;
+    @apply w-full border border-token bg-surface rounded-lg px-4 py-3 text-main focus:outline-none focus:ring-2 focus:ring-accent/60;
   }
 
   .primary-btn {
-    @apply w-full bg-primary text-white py-3 rounded-md text-sm font-semibold;
+    @apply inline-flex items-center justify-center gap-2 bg-primary text-white py-3 px-5 rounded-lg text-sm font-semibold transition-colors duration-200;
+    background-color: var(--landing-action);
+  }
+
+  .secondary-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-token bg-surface px-5 py-3 text-sm font-semibold text-main transition-colors duration-200 hover-surface;
+  }
+
+  .public-primary-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-token py-3 px-5 text-sm font-bold tracking-[0.02em] text-main transition-colors duration-200;
+    background-color: var(--neo-yellow);
+    box-shadow: var(--landing-shadow-soft);
+  }
+
+  .public-secondary-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-token bg-surface px-5 py-3 text-sm font-bold tracking-[0.02em] text-main transition-colors duration-200;
+    box-shadow: var(--landing-shadow-soft);
+  }
+
+  .landing-panel {
+    @apply border border-token;
+    border-radius: var(--landing-radius-md);
+  }
+
+  .landing-card {
+    @apply border border-token;
+    border-radius: var(--landing-radius-lg);
+    box-shadow: var(--landing-shadow-soft);
+  }
+
+  .landing-nav {
+    box-shadow: none;
+  }
+
+  .landing-nav-pop {
+    animation: navPopIn 260ms ease-out both;
+  }
+
+  .landing-nav-link {
+    position: relative;
+    transition: color 180ms ease;
+  }
+
+  .landing-nav-link::after {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.4rem;
+    height: 2px;
+    content: "";
+    background: var(--landing-action);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 180ms ease;
+  }
+
+  .landing-nav-link:hover {
+    color: var(--landing-action);
+  }
+
+  .landing-nav-link:hover::after {
+    transform: scaleX(1);
+  }
+
+  .landing-pill {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-token px-5 py-3 text-sm font-bold transition-colors duration-200;
+  }
+
+  .landing-pill-primary {
+    @apply text-white;
+    background-color: var(--landing-action);
+  }
+
+  .landing-pill-primary:hover {
+    background-color: var(--landing-action-hover);
+  }
+
+  .landing-pill-secondary {
+    @apply bg-white text-main;
+  }
+
+  .landing-eyebrow {
+    @apply inline-flex w-fit rounded-md border border-token bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-main;
+  }
+
+  .landing-title {
+    @apply max-w-3xl text-4xl font-extrabold leading-[1.02] tracking-tight text-main md:text-6xl;
+  }
+
+  .landing-accent-blue {
+    background-color: var(--neo-blue);
+  }
+
+  .landing-accent-yellow {
+    background-color: var(--neo-yellow);
+  }
+
+  .landing-accent-green {
+    background-color: var(--neo-green);
+  }
+
+  .landing-accent-paper {
+    background-color: var(--neo-paper);
   }
 
   .card-title {
@@ -52,6 +190,17 @@ body{
 
   .hero-title {
     @apply text-5xl md:text-6xl font-extrabold tracking-tight leading-tight text-neutral;
+  }
+}
+
+@keyframes navPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -103,4 +252,23 @@ body{
   animation: none !important;
   transition: none !important;
   scroll-behavior: auto !important;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--app-bg);
+}
+
+.input-base::placeholder {
+  color: var(--text-muted);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 4px solid var(--landing-focus);
+  outline-offset: 4px;
 }

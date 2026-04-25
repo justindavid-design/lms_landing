@@ -8,6 +8,29 @@ const {
   respondWithError,
 } = require('./_lms')
 
+function normalizeQuizQuestions(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item, index) => ({
+        id: item.id || `question-${index + 1}`,
+        text: String(item.text || '').trim(),
+        options: Array.isArray(item.options) ? item.options.map((opt) => String(opt || '').trim()) : [],
+        correct: Number.isInteger(item.correct) ? item.correct : 0,
+      }))
+      .filter((item) => item.text)
+  }
+
+  return String(value || '')
+    .split('\n')
+    .map((line, index) => ({
+      id: `question-${index + 1}`,
+      text: line.trim(),
+      options: [],
+      correct: 0,
+    }))
+    .filter((item) => item.text)
+}
+
 module.exports = async (req, res) => {
   try {
     const userId = requireUserId(req)
@@ -71,7 +94,7 @@ module.exports = async (req, res) => {
             instructions: assignment.instructions || quiz.description || null,
             due_at: assignment.due_at || null,
             status: assignment.status,
-            question_count: Array.isArray(quiz.meta?.questions) ? quiz.meta.questions.length : 0,
+            question_count: normalizeQuizQuestions(quiz.meta?.questions).length,
             pending_review_count: rows.filter((row) => row.submitted_at && !row.graded_at).length,
             submission_count: rows.length,
             submission: studentSubmission
@@ -94,18 +117,15 @@ module.exports = async (req, res) => {
 
       if (!body.title) return res.status(400).json({ error: 'title required' })
 
+      const normalizedQuestions = normalizeQuizQuestions(body.questions)
+
       const quizPayload = {
         course_id: courseId,
         title: body.title,
         description: body.description || null,
         published: body.status === 'published',
         meta: {
-          questions: Array.isArray(body.questions)
-            ? body.questions
-            : String(body.questions || '')
-                .split('\n')
-                .map((line) => line.trim())
-                .filter(Boolean),
+          questions: normalizedQuestions,
         },
       }
 
@@ -150,7 +170,7 @@ module.exports = async (req, res) => {
         assignment_id: assignment.id,
         due_at: assignment.due_at,
         status: assignment.status,
-        question_count: Array.isArray(quiz.meta?.questions) ? quiz.meta.questions.length : 0,
+        question_count: normalizedQuestions.length,
       })
     }
 

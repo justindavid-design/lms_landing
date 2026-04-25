@@ -19,6 +19,62 @@ async function getAssignment(assignmentId) {
   return data
 }
 
+async function getQuizById(quizId) {
+  if (!quizId) return null
+  const { data, error } = await getSupabase().from('quizzes').select('*').eq('id', quizId).maybeSingle()
+  if (error) throw error
+  return data
+}
+
+function normalizeQuizQuestions(value) {
+  return Array.isArray(value)
+    ? value
+        .map((item, index) => ({
+          id: item.id || `question-${index + 1}`,
+          text: String(item.text || '').trim(),
+          options: Array.isArray(item.options) ? item.options.map((opt) => String(opt || '').trim()) : [],
+          correct: Number.isInteger(item.correct) ? item.correct : 0,
+        }))
+        .filter((item) => item.text)
+    : []
+}
+
+function scoreQuizSubmission(quiz, content) {
+  if (!quiz) return null
+
+  let parsed = content
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed)
+    } catch (_error) {
+      return null
+    }
+  }
+
+  const questions = normalizeQuizQuestions(quiz.meta?.questions)
+  const answers = Array.isArray(parsed?.answers) ? parsed.answers : []
+  if (!questions.length || !answers.length) return null
+
+  const answerMap = new Map(answers.map((item, index) => [String(item.questionId || index), item]))
+  const scoredAnswers = questions.map((question, index) => {
+    const answer = answerMap.get(String(question.id)) || answerMap.get(String(index)) || {}
+    const chosen = Number(answer.chosen)
+    return {
+      questionId: question.id,
+      chosen,
+      correct: question.correct,
+      isCorrect: chosen === question.correct,
+    }
+  })
+
+  const score = scoredAnswers.filter((item) => item.isCorrect).length
+  return {
+    score,
+    total: questions.length,
+    answers: scoredAnswers,
+  }
+}
+
 module.exports = async (req, res) => {
   try {
     const userId = requireUserId(req)
@@ -105,6 +161,9 @@ module.exports = async (req, res) => {
       const body = req.body || {}
       const submittedAt = new Date().toISOString()
       const computedStatus = computeSubmissionStatus(assignment, { submitted_at: submittedAt })
+      const quiz = assignment.kind === 'quiz' ? await getQuizById(assignment.quiz_id) : null
+      const autoScore = assignment.kind === 'quiz' ? scoreQuizSubmission(quiz, body.content || null) : null
+      const storedContent = typeof body.content === 'string' ? body.content || null : body.content ? JSON.stringify(body.content) : null
 
       const { data, error } = await getSupabase()
         .from('submissions')
@@ -113,10 +172,13 @@ module.exports = async (req, res) => {
             {
               assignment_id: assignmentId,
               student_id: userId,
-              content: body.content || null,
+              content: storedContent,
               attachment_url: body.attachment_url || null,
-              status: computedStatus === 'late' ? 'late' : 'submitted',
+              status: autoScore ? 'graded' : computedStatus === 'late' ? 'late' : 'submitted',
               submitted_at: submittedAt,
+              graded_at: autoScore ? submittedAt : null,
+              score: autoScore ? autoScore.score : null,
+              feedback: autoScore ? `Auto-scored quiz: ${autoScore.score}/${autoScore.total}` : null,
               updated_at: submittedAt,
             },
           ],

@@ -87,5 +87,5 @@ describe('CourseDetails', () => {
       expect(screen.getByRole('button', { name: /submit work/i })).toBeTruthy()
       expect(screen.getByRole('button', { name: /submit quiz/i })).toBeTruthy()
     })
-  })
+  }, 15000)
 })

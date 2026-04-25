@@ -39,33 +39,44 @@ export function AuthProvider({ children }){
 
   useEffect(() => {
     const t = setTimeout(() => setIsVisible(true), 100)
+    return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
 
     const getProfile = async () => {
-      try{
-        const res = await supabase.auth.getUser()
-        const user = res?.data?.user
-        console.debug('AuthProvider.getProfile: auth user', user)
-        if (user) {
-          const { data, error, status } = await supabase
-            .from('profiles')
-            .select('display_name')
-            .eq('id', user.id)
-            .maybeSingle()
+      if (!user) {
+        if (mounted) setProfileName('Learner')
+        return
+      }
 
-          console.debug('AuthProvider.getProfile: profile query', { data, error, status })
-          if (data && !error && data.display_name) {
-            setProfileName(data.display_name)
-          } else {
-            setProfileName(user.user_metadata?.full_name || user.email || 'Learner')
-            if (status === 406) console.warn('Profile query returned 406; falling back to user metadata')
-          }
+      try {
+        const { data, error, status } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (!mounted) return
+
+        if (data && !error && data.display_name) {
+          setProfileName(data.display_name)
+        } else {
+          setProfileName(user.user_metadata?.display_name || user.user_metadata?.full_name || user.email || 'Learner')
+          if (status === 406) console.warn('Profile query returned 406; falling back to user metadata')
         }
-      }catch(err){ console.warn('getProfile failed', err) }
+      } catch (err) {
+        console.warn('getProfile failed', err)
+        if (mounted) setProfileName(user.user_metadata?.display_name || user.user_metadata?.full_name || user.email || 'Learner')
+      }
     }
 
     getProfile()
-    return () => clearTimeout(t)
-  }, [])
+    return () => {
+      mounted = false
+    }
+  }, [user])
 
   const value = { user, loading, isVisible, profileName }
   return (

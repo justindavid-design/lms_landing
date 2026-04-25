@@ -24,7 +24,7 @@ export default function CourseForm({ initial = {}, onSave, onCancel }) {
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-token bg-surface p-5">
+    <div className="space-y-4 rounded-lg border border-token bg-surface p-5">
       <input
         className="input-base"
         placeholder="Course title"
@@ -34,7 +34,7 @@ export default function CourseForm({ initial = {}, onSave, onCancel }) {
 
       <input
         className="input-base"
-        placeholder="Slug"
+        placeholder="Short course link"
         value={slug}
         onChange={(e) => setSlug(e.target.value)}
       />
@@ -53,17 +53,17 @@ export default function CourseForm({ initial = {}, onSave, onCancel }) {
             checked={published}
             onChange={(e) => setPublished(e.target.checked)}
           />
-          Published
+          Show this course to students
         </label>
 
         <div className="flex-1" />
 
-        <button onClick={onCancel} className="rounded-xl border px-4 py-2 text-sm">
+        <button onClick={onCancel} className="rounded-lg border px-4 py-2 text-sm">
           Cancel
         </button>
         <button
           onClick={handleSave}
-          className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white"
+          className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white"
         >
           Save
         </button>

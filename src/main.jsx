@@ -15,20 +15,17 @@ function ThemeBootstrap() {
 
 const theme = createTheme({
   typography: {
-    // Sets Montserrat as the base font for the entire app
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Nunito, sans-serif',
     
-    // Specifically sets Poppins for headings
-    h1: { fontFamily: 'Poppins, sans-serif', fontWeight: 700 },
-    h2: { fontFamily: 'Poppins, sans-serif', fontWeight: 700 },
-    h3: { fontFamily: 'Poppins, sans-serif', fontWeight: 600 },
-    h4: { fontFamily: 'Poppins, sans-serif', fontWeight: 600 },
-    h5: { fontFamily: 'Poppins, sans-serif', fontWeight: 600 },
-    h6: { fontFamily: 'Poppins, sans-serif', fontWeight: 600 },
+    h1: { fontFamily: 'Nunito, sans-serif', fontWeight: 800 },
+    h2: { fontFamily: 'Nunito, sans-serif', fontWeight: 800 },
+    h3: { fontFamily: 'Nunito, sans-serif', fontWeight: 700 },
+    h4: { fontFamily: 'Nunito, sans-serif', fontWeight: 700 },
+    h5: { fontFamily: 'Nunito, sans-serif', fontWeight: 700 },
+    h6: { fontFamily: 'Nunito, sans-serif', fontWeight: 700 },
     
-    // Ensuring buttons also use the clean Montserrat look
     button: {
-      fontFamily: 'Montserrat, sans-serif',
+      fontFamily: 'Nunito, sans-serif',
       textTransform: 'none', // Good for cognitive accessibility
     },
   },

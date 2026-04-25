@@ -7,17 +7,20 @@ function Sparkline({ data = [], width = 300, height = 80, stroke = '#3b82f6' }) 
   const max = Math.max(...data)
   const min = Math.min(...data)
   const len = data.length
-  const points = data.map((d, i) => {
-    const x = (i / (len - 1)) * width
-    const y = height - ((d - min) / Math.max(1, max - min)) * height
-    return `${x},${y}`
-  }).join(' ')
+  const points = data
+    .map((d, i) => {
+      const x = (i / (len - 1 || 1)) * width
+      const y = height - ((d - min) / Math.max(1, max - min)) * height
+      return `${x},${y}`
+    })
+    .join(' ')
+
   return (
-    <svg width={width} height={height} className="block">
+    <svg width={width} height={height} className="block max-w-full" aria-hidden="true">
       <polyline
         fill="none"
         stroke={stroke}
-        strokeWidth="2"
+        strokeWidth="3"
         points={points}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -26,7 +29,7 @@ function Sparkline({ data = [], width = 300, height = 80, stroke = '#3b82f6' }) 
   )
 }
 
-export default function StatsChart(){
+export default function StatsChart() {
   const { user } = useAuth()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,81 +42,83 @@ export default function StatsChart(){
     }
 
     let mounted = true
-    const url = `/api/stats?user_id=${encodeURIComponent(user.id)}`
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
+    fetch(`/api/stats?user_id=${encodeURIComponent(user.id)}`)
+      .then((res) => res.json())
+      .then((data) => {
         if (!mounted) return
         setStats(data)
       })
       .catch(() => {
-        // fallback sample if API unavailable
         if (!mounted) return
-        setStats({ metrics: { activeUsers: 0, totalCourses: 0, avgScore: null, dueSoon: 0, pendingReviews: 0 }, series: [0,0,0,0,0,0,0] })
+        setStats({ metrics: { activeUsers: 0, totalCourses: 0, avgScore: null, dueSoon: 0, pendingReviews: 0 }, series: [0, 0, 0, 0, 0, 0, 0] })
       })
       .finally(() => mounted && setLoading(false))
-    return () => { mounted = false }
+
+    return () => {
+      mounted = false
+    }
   }, [user?.id])
 
-  if (loading) return (
-    <Loading message="Loading analytics…">
-      <div className="bg-surface rounded-xl-card p-4 border border-token shadow-sm animate-pulse" aria-hidden>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="h-4 bg-token-muted rounded w-24 mb-2"></div>
-            <div className="h-4 bg-token-muted rounded w-32"></div>
+  if (loading) {
+    return (
+      <Loading message="Loading your overview...">
+        <div className="animate-pulse rounded-lg border border-token bg-surface p-5 shadow-sm" aria-hidden>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <div className="mb-2 h-4 w-24 rounded bg-token-muted" />
+              <div className="h-4 w-32 rounded bg-token-muted" />
+            </div>
+            <div className="h-3 w-12 rounded bg-token-muted" />
           </div>
-          <div className="h-3 bg-token-muted rounded w-12"></div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="h-10 bg-token-muted rounded"></div>
-          <div className="h-10 bg-token-muted rounded"></div>
-          <div className="h-10 bg-token-muted rounded"></div>
-        </div>
+          <div className="mb-4 grid grid-cols-3 gap-3">
+            <div className="h-14 rounded-lg bg-token-muted" />
+            <div className="h-14 rounded-lg bg-token-muted" />
+            <div className="h-14 rounded-lg bg-token-muted" />
+          </div>
 
-        <div className="h-20 bg-token-muted rounded"></div>
-      </div>
-    </Loading>
-  )
+          <div className="h-24 rounded-lg bg-token-muted" />
+        </div>
+      </Loading>
+    )
+  }
 
   const m = stats?.metrics || {}
   const series = stats?.series || []
 
   return (
-    <div className="bg-surface rounded-xl-card p-4 border border-token shadow-sm">
-      <div className="flex items-center justify-between mb-3">
+    <div className="rounded-lg border border-token bg-surface p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <div className="text-sm text-muted">Analytics</div>
-          <div className="font-semibold">Overview</div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-subtle">Class Overview</div>
+          <div className="mt-2 text-lg font-bold text-main">Progress</div>
         </div>
-        <div className="text-xs text-muted">Last 12</div>
+        <div className="rounded-full border border-token bg-app px-3 py-1 text-xs text-muted">Last 12 weeks</div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <div className="text-center">
-          <div className="text-2xl font-bold">{m.activeUsers ?? '-'}</div>
-          <div className="text-xs text-muted">Active users</div>
+      <div className="mb-4 grid grid-cols-3 gap-3">
+        <div className="rounded-lg border border-token bg-app px-3 py-4 text-center">
+          <div className="text-2xl font-extrabold text-main">{m.activeUsers ?? '-'}</div>
+          <div className="mt-1 text-xs text-muted">Active students</div>
         </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold">{m.totalCourses ?? '-'}</div>
-          <div className="text-xs text-muted">Courses</div>
+        <div className="rounded-lg border border-token bg-app px-3 py-4 text-center">
+          <div className="text-2xl font-extrabold text-main">{m.totalCourses ?? '-'}</div>
+          <div className="mt-1 text-xs text-muted">Courses</div>
         </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold">{m.avgScore ? `${Math.round(m.avgScore)}%` : '-'}</div>
-          <div className="text-xs text-muted">Avg score</div>
+        <div className="rounded-lg border border-token bg-app px-3 py-4 text-center">
+          <div className="text-2xl font-extrabold text-main">{m.avgScore ? `${Math.round(m.avgScore)}%` : '-'}</div>
+          <div className="mt-1 text-xs text-muted">Average score</div>
         </div>
       </div>
 
-      <div className="mb-3 flex items-center justify-between text-xs text-muted">
+      <div className="mb-4 flex items-center justify-between text-xs font-medium text-muted">
         <span>Due soon: {m.dueSoon ?? 0}</span>
-        <span>Pending reviews: {m.pendingReviews ?? 0}</span>
+        <span>Needs checking: {m.pendingReviews ?? 0}</span>
       </div>
 
-      <div>
-        <Sparkline data={series} width={260} height={70} stroke="#10b981" />
+      <div className="overflow-hidden rounded-lg border border-token bg-app px-3 py-4">
+        <Sparkline data={series} width={260} height={70} stroke="#111827" />
       </div>
     </div>
   )
 }
-

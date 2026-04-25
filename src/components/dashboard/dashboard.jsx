@@ -4,26 +4,43 @@ import { Menu, Add } from '@mui/icons-material';
 import { useLocation } from 'react-router-dom';
 import Home from './Home'
 import { useAuth } from '../../lib/AuthProvider'
+import { useCourseName } from '../../lib/CourseNameContext'
+import { CourseModalProvider, useCourseModal } from '../../lib/CourseModalContext'
+import CourseModalOverlay from '../CourseModalOverlay'
 
-export default function DashboardLayout({ children }) {
+function DashboardContent({ children }) {
   const [isOpen, setIsOpen] = useState(true);
-  const [courseActions, setCourseActions] = useState(null);
+  const { openCreate, openEnroll } = useCourseModal();
   const [showCourseMenu, setShowCourseMenu] = useState(false);
+  const [profilePicture, setProfilePicture] = useState(null);
   const location = useLocation();
   const { user, profileName } = useAuth();
+  const { currentCourseName } = useCourseName();
 
   const isCoursesPage = location.pathname === '/courses';
 
   const titleMap = {
-    '/dashboard': 'Dashboard',
+    '/dashboard': 'Home',
     '/courses': 'Courses',
     '/calendar': 'Calendar',
     '/tasks': 'Tasks',
-    '/archived': 'Archived Courses',
+    '/archived': 'Saved Courses',
     '/settings': 'Settings'
   };
 
-  const currentTitle = titleMap[location.pathname] || 'Google Classroom';
+  // Compute current title - handle dynamic routes
+  const getCurrentTitle = () => {
+    const path = location.pathname;
+    
+    // Handle course details page - use actual course name from context
+    if (path.startsWith('/courses/') && path !== '/courses') {
+      return currentCourseName || 'Course Details';
+    }
+    
+    return titleMap[path] || 'Home';
+  };
+
+  const currentTitle = getCurrentTitle();
   const userName = profileName || user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.email || 'Learner';
   const avatarInitials = String(userName)
     .trim()
@@ -35,6 +52,24 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     setShowCourseMenu(false);
   }, [location.pathname]);
+
+  // Load profile picture from localStorage
+  useEffect(() => {
+    const loadProfilePicture = () => {
+      try {
+        const savedProfile = JSON.parse(window.localStorage.getItem('userProfile') || '{}')
+        if (savedProfile.profilePicture) {
+          setProfilePicture(savedProfile.profilePicture)
+        }
+      } catch (_e) {}
+    }
+
+    loadProfilePicture()
+
+    // Poll for changes from Settings page (every 500ms)
+    const interval = setInterval(loadProfilePicture, 500)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     try {
@@ -84,13 +119,13 @@ export default function DashboardLayout({ children }) {
 
                 <div className="absolute right-0 mt-4 w-48 bg-surface border border-token rounded-md shadow-xl z-50 py-2">
                   <button
-                    onClick={() => { courseActions?.openCreate?.(); setShowCourseMenu(false); }}
+                    onClick={() => { openCreate(); setShowCourseMenu(false); }}
                     className="w-full text-left px-4 py-3 hover-surface text-sm text-main"
                   >
                     Create Course
                   </button>
                   <button
-                    onClick={() => { courseActions?.openEnroll?.(); setShowCourseMenu(false); }}
+                    onClick={() => { openEnroll(); setShowCourseMenu(false); }}
                     className="w-full text-left px-4 py-3 hover-surface text-sm text-main"
                   >
                     Join Course
@@ -102,9 +137,14 @@ export default function DashboardLayout({ children }) {
 
           <div
             title={userName}
-            className="w-9 h-9 bg-indigo-600 rounded-full flex items-center justify-center font-bold text-white text-xs cursor-pointer ml-2"
+            className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-xs cursor-pointer ml-2 overflow-hidden flex-shrink-0"
+            style={profilePicture ? {} : { backgroundColor: '#4f46e5' }}
           >
-            {avatarInitials}
+            {profilePicture ? (
+              <img src={profilePicture} alt={userName} className="w-full h-full object-cover" />
+            ) : (
+              avatarInitials
+            )}
           </div>
         </div>
       </header>
@@ -115,11 +155,21 @@ export default function DashboardLayout({ children }) {
         <main className="flex-1 overflow-y-auto bg-app">
           <div className="w-full h-full pt-6 px-6">
             {React.isValidElement(children)
-              ? React.cloneElement(children, { registerHeaderActions: setCourseActions })
+              ? children
               : (children || <Home />)}
           </div>
         </main>
       </div>
+
+      <CourseModalOverlay />
     </div>
   );
+}
+
+export default function DashboardLayout({ children }) {
+  return (
+    <CourseModalProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </CourseModalProvider>
+  )
 }

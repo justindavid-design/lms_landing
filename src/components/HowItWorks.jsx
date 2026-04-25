@@ -1,47 +1,64 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowForward, CheckCircle } from '@mui/icons-material'
+import logo from '../assets/logo.png'
 
-export default function HowItWorks(){
+const steps = [
+  {
+    title: 'Choose what feels comfortable',
+    description: 'Students can turn on stronger colors, larger text, easier fonts, or less movement before starting.',
+  },
+  {
+    title: 'Learn with helpful tips',
+    description: 'Quiz tips explain what to review next while the lesson is still fresh.',
+  },
+  {
+    title: 'Track progress clearly',
+    description: 'Simple progress pages help students and teachers see what needs attention.',
+  },
+]
+
+export default function HowItWorks() {
   return (
-    <section class="py-10 bg-surface sm:py-16 lg:py-24">
-    <div class="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        <div class="max-w-2xl mx-auto text-center">
-            <h2 class="text-3xl font-bold leading-tight text-black sm:text-4xl lg:text-5xl">How does it work?</h2>
-            <p class="max-w-lg mx-auto mt-4 text-base leading-relaxed text-gray-600">Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit officia consequat duis.</p>
+    <section id="how-it-works" className="bg-[#f7f4ee] px-4 py-16 md:px-10 md:py-24 lg:px-16">
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div>
+          <p className="landing-eyebrow">How it works</p>
+          <h2 className="landing-title mt-5">A learning path built around comfort and confidence.</h2>
+          <p className="mt-5 max-w-xl text-base font-medium leading-8 text-muted">
+            Students can set up the page in a way that feels good before they start their lessons.
+          </p>
+          <Link to="/signup" className="landing-pill landing-pill-primary mt-8 inline-flex">
+            Join Academee
+            <ArrowForward fontSize="small" />
+          </Link>
         </div>
 
-        <div class="relative mt-12 lg:mt-20">
-            <div class="absolute inset-x-0 hidden xl:px-44 top-2 md:block md:px-20 lg:px-28">
-                <img class="w-full" src="https://cdn.rareblocks.xyz/collection/celebration/images/steps/2/curved-dotted-line.svg" alt="" />
+        <div className="landing-card bg-white p-4 md:p-6">
+          <div className="grid gap-4">
+            {steps.map((step, index) => (
+              <article key={step.title} className="grid gap-4 rounded-lg border border-token bg-white p-5 sm:grid-cols-[auto_1fr]">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-lg border border-token text-sm font-bold text-main ${index === 0 ? 'bg-[#fff0a8]' : index === 1 ? 'bg-[#dfeaff]' : 'bg-[#e8f3de]'}`}>
+                  {String(index + 1).padStart(2, '0')}
+                </div>
+                <div>
+                  <h3 className="text-xl font-extrabold tracking-tight text-main">{step.title}</h3>
+                  <p className="mt-2 text-sm font-medium leading-7 text-muted">{step.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-5 rounded-lg border border-token bg-[#1d2433] p-5 text-white">
+            <div className="flex items-start gap-3">
+              <img src = {logo}  className='w-8 mt-4'/>
+              <p className="ml-2 text-sm font-medium leading-7 text-white/85">
+                Everything is easy to find in one place: courses, quizzes, tasks, comfort settings, and past quiz tips.
+              </p>
             </div>
-
-            <div class="relative grid grid-cols-1 text-center gap-y-12 md:grid-cols-3 gap-x-12">
-                <div>
-                    <div class="flex items-center justify-center w-16 h-16 mx-auto bg-surface border-2 border-token rounded-full shadow">
-                        <span class="text-xl font-semibold text-gray-700"> 1 </span>
-                    </div>
-                    <h3 class="mt-6 text-xl font-semibold leading-tight text-black md:mt-10">Sign up or login</h3>
-                    <p class="mt-4 text-base text-gray-600">Create an account in seconds and pick a learning path.</p>
-                </div>
-
-                <div>
-                    <div class="flex items-center justify-center w-16 h-16 mx-auto bg-surface border-2 border-token rounded-full shadow">
-                        <span class="text-xl font-semibold text-gray-700"> 2 </span>
-                    </div>
-                    <h3 class="mt-6 text-xl font-semibold leading-tight text-black md:mt-10">Take short lessons</h3>
-                    <p class="mt-4 text-base text-gray-600">Micro-lessons and quizzes tailored to your level.</p>
-                </div>
-
-                <div>
-                    <div class="flex items-center justify-center w-16 h-16 mx-auto bg-surface border-2 border-token rounded-full shadow">
-                        <span class="text-xl font-semibold text-gray-700"> 3 </span>
-                    </div>
-                    <h3 class="mt-6 text-xl font-semibold leading-tight text-black md:mt-10">Track progress</h3>
-                    <p class="mt-4 text-base text-gray-600">Get actionable insights and personalized recommendations.</p>
-                </div>
-            </div>
+          </div>
         </div>
-    </div>
-</section>
-
+      </div>
+    </section>
   )
 }

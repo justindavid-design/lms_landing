@@ -55,9 +55,12 @@ export default function TodoWidget(){
   )
 
   return (
-    <div className="bg-surface rounded-xl-card p-4 border border-token shadow-sm" role="region" aria-label="Tasks Assigned">
+    <div className="rounded-lg border border-token bg-surface p-5 shadow-sm" role="region" aria-label="Tasks Assigned">
       <div className="flex items-center justify-between mb-3">
-        <div className="font-semibold">Tasks Assigned</div>
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-subtle">Task list</div>
+          <div className="mt-2 font-semibold text-main">Tasks Assigned</div>
+        </div>
         <div className="text-xs text-muted" aria-live="polite">{completed}/{tasks.length}</div>
       </div>
 
@@ -66,7 +69,7 @@ export default function TodoWidget(){
       ) : (
         <ul className="space-y-2 max-h-56 overflow-auto" aria-label="Assigned tasks">
           {tasks.map((task) => (
-            <li key={task.id} className="rounded-xl border border-token p-3">
+            <li key={task.id} className="rounded-lg border border-token bg-app p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-main truncate">{task.title}</div>

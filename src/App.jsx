@@ -17,18 +17,20 @@ import Calendar from './components/dashboard/Calendar'
 import CourseDetails from './components/dashboard/CourseDetails'
 import Courses from './components/dashboard/Courses'
 import Dashboard from './components/dashboard/dashboard'
+import EnrollPage from './components/dashboard/EnrollPage'
 import Settings from './components/dashboard/Settings'
 import Tasks from './components/dashboard/Tasks'
 import RequireAuth from './lib/RequireAuth'
+import { CourseContextProvider } from './lib/CourseNameContext'
 
 function Landing() {
   return (
     <div className="font-sans text-main">
       <Hero />
-      <main className="bg-surface -mt-16">
-        <About />
+      <main className="relative z-10 bg-transparent">
         <Features />
         <HowItWorks />
+        <About />
         <Testimonials />
       </main>
       <Footer />
@@ -53,24 +55,27 @@ function NotFound() {
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/recover" element={<RecoverEmail />} />
-        <Route path="/recover/verify" element={<RecoverVerify />} />
-        <Route path="/recover/reset" element={<RecoverReset />} />
-        <Route path="/reset" element={<PasswordReset />} />
-        <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
-        <Route path="/courses" element={<RequireAuth><Dashboard><Courses /></Dashboard></RequireAuth>} />
-        <Route path="/courses/:id" element={<RequireAuth><Dashboard><CourseDetails /></Dashboard></RequireAuth>} />
-        <Route path="/calendar" element={<RequireAuth><Dashboard><Calendar /></Dashboard></RequireAuth>} />
-        <Route path="/tasks" element={<RequireAuth><Dashboard><Tasks /></Dashboard></RequireAuth>} />
-        <Route path="/archived" element={<RequireAuth><Dashboard><Archived /></Dashboard></RequireAuth>} />
-        <Route path="/settings" element={<RequireAuth><Dashboard><Settings /></Dashboard></RequireAuth>} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+    <CourseContextProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/recover" element={<RecoverEmail />} />
+          <Route path="/recover/verify" element={<RecoverVerify />} />
+          <Route path="/recover/reset" element={<RecoverReset />} />
+          <Route path="/reset" element={<PasswordReset />} />
+          <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+          <Route path="/courses" element={<RequireAuth><Dashboard><Courses /></Dashboard></RequireAuth>} />
+          <Route path="/courses/enroll" element={<RequireAuth><Dashboard><EnrollPage /></Dashboard></RequireAuth>} />
+          <Route path="/courses/:id" element={<RequireAuth><Dashboard><CourseDetails /></Dashboard></RequireAuth>} />
+          <Route path="/calendar" element={<RequireAuth><Dashboard><Calendar /></Dashboard></RequireAuth>} />
+          <Route path="/tasks" element={<RequireAuth><Dashboard><Tasks /></Dashboard></RequireAuth>} />
+          <Route path="/archived" element={<RequireAuth><Dashboard><Archived /></Dashboard></RequireAuth>} />
+          <Route path="/settings" element={<RequireAuth><Dashboard><Settings /></Dashboard></RequireAuth>} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+    </CourseContextProvider>
   )
 }

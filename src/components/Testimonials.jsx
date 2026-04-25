@@ -1,95 +1,111 @@
-import React, { useEffect } from 'react'
-import Container from '@mui/material/Container'
-import AOS from 'aos'
-import 'aos/dist/aos.css'
+import React from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowForward } from '@mui/icons-material'
 
-function TestCard({ name, feedback, className }){
+const communityCards = [
+  {
+    title: 'Simple home page',
+    body: 'Students can continue lessons, answer quizzes, and read tips without clutter.',
+    tone: 'bg-[#dfeaff]',
+  },
+  {
+    title: 'Help is easier to spot',
+    body: 'Teachers can see who may need support without reading complicated reports.',
+    tone: 'bg-[#e8f3de]',
+  },
+  {
+    title: 'Ready for more learners',
+    body: 'Clear pages and comfort settings help more students take part from the start.',
+    tone: 'bg-[#fff0a8]',
+  },
+]
+
+const faqs = [
+  {
+    question: 'What makes Academee easy to use?',
+    answer: 'It puts clear colors, readable spacing, keyboard help, comfort settings, and simple quiz tips first.',
+  },
+  {
+    question: 'Who benefits from the comfort tools?',
+    answer: 'Students who need help with seeing, reading, focusing, movement, or screen motion can benefit. The same clarity helps the whole class too.',
+  },
+  {
+    question: 'Do quizzes give helpful tips?',
+    answer: 'Yes. Quiz tips guide students toward what to review next in clear and encouraging words.',
+  },
+  {
+    question: 'Can students adjust the page?',
+    answer: 'Yes. The app includes stronger colors, larger text, easier fonts, and less movement.',
+  },
+  {
+    question: 'Is the page made to be easier for everyone?',
+    answer: 'Yes. The page is designed with clear colors and easy keyboard movement, and it should keep being checked as new features are added.',
+  },
+]
+
+export default function Testimonials() {
   return (
-    <div 
-      className={`bg-lmsgreen rounded-[2.5rem] p-8 w-full max-w-[320px] h-[180px] flex flex-col items-center justify-center text-center text-white soft-shadow transition-transform hover:scale-105 duration-300 ${className}`}
-    >
-      {/* Profile Placeholder */}
-      <div className="w-14 h-14 bg-gray-300/50 rounded-full mb-3 shadow-inner"></div>
-      
-      <h4 className="font-['Poppins'] font-bold text-sm mb-1 uppercase tracking-tight">{name}</h4>
-      <p className="font-['Montserrat'] text-[10px] leading-relaxed text-white/90 px-2 italic">
-        "{feedback}"
-      </p>
-    </div>
-  )
-}
-
-export default function Testimonials(){
-  // Initialize AOS for the section
-  useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      once: true,
-      easing: 'ease-in-out',
-    });
-  }, []);
-
-  return (
-    <section className="font-['Poppins'] py-20 bg-surface overflow-hidden">
-      {/* Header Container with Fade Up */}
-      <Container maxWidth="md" className="text-center" data-aos="fade-up">
-        <h4 className="text-sm text-gray-400 font-medium">_</h4>
-        <div className="text-sm text-gray-500 mb-24 font-medium tracking-widest">
-          Testimonials
+    <section id="reviews" className="bg-[#f7f4ee] px-4 py-16 md:px-10 md:py-24 lg:px-16">
+      <div className="mx-auto max-w-6xl">
+        <div className="text-center">
+          <p className="landing-eyebrow mx-auto">For every kind of learner</p>
+          <h2 className="landing-title mx-auto mt-5 max-w-3xl">Designed for students who need clarity before speed.</h2>
         </div>
-      </Container>
 
-      <Container maxWidth="lg" className="mt-18">
-        {/* Staggered Card Layout with AOS entrance */}
-        <div className="relative flex flex-col md:flex-row justify-center items-center gap-10 md:gap-20 mb-24 px-4">
-          
-          {/* Testimonial 1: Enters from Left */}
-          <div data-aos="fade-right" data-aos-delay="200">
-            <TestCard 
-              name="Renz Gabriel" 
-              feedback="The adaptive feedback caught exactly where I was struggling in Network Management. It's like having a tutor right there in the dashboard."
-              className="md:-translate-y-12" 
-            />
+        <div className="mt-12 grid gap-4 md:grid-cols-3">
+          {communityCards.map((card) => (
+            <article key={card.title} className={`landing-card ${card.tone} p-6`}>
+              <div className="h-40 rounded-lg border border-token bg-white p-4">
+                <div className="h-4 w-2/3 rounded-full bg-[#1d2433]" />
+                <div className="mt-5 grid gap-3">
+                  <div className="h-10 rounded-md bg-[#f7f4ee]" />
+                  <div className="h-10 rounded-md bg-[#f7f4ee]" />
+                  <div className="h-10 rounded-md bg-[#f7f4ee]" />
+                </div>
+              </div>
+              <h3 className="mt-6 text-2xl font-extrabold tracking-tight text-main">{card.title}</h3>
+              <p className="mt-3 text-sm font-medium leading-7 text-muted">{card.body}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-16 flex flex-col items-center gap-8">
+          <div className="text-center">
+            <p className="landing-eyebrow">FAQ</p>
+            <h2 className="landing-title mt-5">Questions before you begin?</h2>
           </div>
-          
-          {/* Testimonial 2: Enters from Right */}
-          <div data-aos="fade-left" data-aos-delay="400">
-            <TestCard 
-              name="Sofia De Leon" 
-              feedback="As a student with low vision, the high-contrast themes and screen reader support made this the most inclusive LMS I've ever used."
-              className="md:translate-y-12" 
-            />
+
+          <div className="grid gap-3 w-full max-w-2xl">
+            {faqs.map((faq) => (
+              <details key={faq.question} className="landing-card group bg-white px-5 py-4">
+                <summary className="cursor-pointer list-none text-base font-bold text-main">
+                  <span className="flex items-center justify-between gap-4">
+                    {faq.question}
+                    <span className="text-2xl leading-none transition-transform group-open:rotate-45">+</span>
+                  </span>
+                </summary>
+                <p className="mt-3 text-lg font-medium leading-7 text-muted">{faq.answer}</p>
+              </details>
+            ))}
           </div>
-          
         </div>
 
-        {/* Contact Section with Slide Up */}
-        <div 
-          className="max-w-5xl mx-auto bg-lmsgreen p-10 md:p-14 rounded-[3rem] text-center shadow-lg mt-10"
-          data-aos="fade-up"
-          data-aos-anchor-placement="bottom-bottom"
-        >
-          <h4 className="font-['Poppins'] text-xl font-bold text-white mb-2">Get in touch with us</h4>
-          <p className="font-['Montserrat'] text-[11px] text-white/80 mb-8 max-w-sm mx-auto leading-normal">
-            Ready to experience a more accessible way to learn? Send us your email and we'll help you get started with your account.
-          </p>
-          
-          <form className="flex flex-col items-center gap-4 max-w-xs mx-auto">
-            <input 
-              type="email" 
-              placeholder="Email..." 
-              className="w-full p-3 px-6 rounded-xl outline-none font-['Montserrat'] text-xs text-main bg-surface shadow-inner focus:ring-2 focus:ring-black/20 transition-all"
-              required 
-            />
-            <button 
-              type="submit" 
-              className="bg-surface text-main font-medium px-10 py-2.5 rounded-full hover-surface active:scale-95 transition-all tracking-widest text-[10px]"
-            >
-              Submit
-            </button>
-          </form>
+        <div className="landing-card mt-16 bg-[#1d2433] p-6 text-center text-white md:p-10">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#fff0a8]">Academee</p>
+          <h3 className="mx-auto mt-4 max-w-2xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
+            Create a learning space that fits you.
+          </h3>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link to="/signup" className="landing-pill landing-pill-primary min-w-44">
+              Create account
+              <ArrowForward fontSize="small" />
+            </Link>
+            <Link to="/login" className="landing-pill border-white bg-transparent text-white min-w-36">
+              Log in
+            </Link>
+          </div>
         </div>
-      </Container>
+      </div>
     </section>
   )
 }

@@ -79,46 +79,54 @@ export default function CourseCard({
   }, [])
 
   return (
-    <div className="w-full max-w-[370px]">
-      <div className="overflow-hidden rounded-[34px] border border-token bg-surface shadow-[0_8px_24px_rgba(0,0,0,0.10)]">
-        <div className="relative h-[250px] overflow-hidden rounded-[30px]">
+    <div className="w-[280px]">
+      <div className="overflow-hidden rounded-lg border border-token bg-surface shadow-sm transition-shadow hover:shadow-md">
+        {/* Thumbnail Section */}
+        <div className="relative h-[200px] bg-gray-800 overflow-hidden">
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/65 z-10" />
+
+          {/* Course image */}
           <img
             src={imageUrl}
-            alt={course.title || 'Course cover'}
-            className="h-full w-full object-cover"
+            alt={course.title || 'Course thumbnail'}
+            className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
           />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-          <div className="absolute left-5 top-4 flex items-center gap-2 rounded-full border border-token bg-surface px-2.5 py-1 text-[12px] font-semibold text-main shadow-sm">
-            <div className="flex -space-x-1.5">
-              <span className="grid h-5 w-5 place-items-center rounded-full border border-white bg-green-700 text-[10px] text-white">
+          {/* Top left — avatars + count */}
+          <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5">
+            <div className="flex">
+              <div className="w-6 h-6 rounded-full bg-[#111827] border border-white flex items-center justify-center text-white text-[10px] font-bold">
                 {teacherInitial}
-              </span>
-              <span className="grid h-5 w-5 place-items-center rounded-full border border-white bg-black text-[10px] text-white">
+              </div>
+              <div className="w-6 h-6 rounded-full bg-[#6b7280] border border-white -ml-2 flex items-center justify-center text-white text-[10px] font-bold">
                 {userInitial}
-              </span>
+              </div>
             </div>
-            <span>{learnerCount}</span>
+            <div className="bg-black/50 rounded-full px-2 py-0.5">
+              <span className="text-white text-xs font-medium">{learnerCount}</span>
+            </div>
           </div>
 
-          <div ref={menuRef} className="absolute right-4 top-4">
+          {/* Top right — menu */}
+          <div ref={menuRef} className="absolute top-2.5 right-3 z-20">
             <button
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="grid h-8 w-8 place-items-center rounded-full bg-black/20 text-white backdrop-blur-sm"
+              className="text-white text-lg tracking-widest hover:opacity-80 transition-opacity"
               aria-label="Card options"
+              aria-expanded={menuOpen}
             >
-              <MoreVert fontSize="small" />
+              ···
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-token bg-surface shadow-xl">
+              <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-lg border border-token bg-surface shadow-xl">
                 <button
                   type="button"
                   onClick={openCourse}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover-surface"
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover:bg-surface-alt"
                 >
                   <FolderOpen fontSize="small" />
                   Open class
@@ -131,7 +139,7 @@ export default function CourseCard({
                       setMenuOpen(false)
                       onCopyCode(course.course_code)
                     }}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover-surface"
+                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover:bg-surface-alt"
                   >
                     <CopyAll fontSize="small" />
                     Copy code
@@ -145,7 +153,7 @@ export default function CourseCard({
                       setMenuOpen(false)
                       onEdit(course)
                     }}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover-surface"
+                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover:bg-surface-alt"
                   >
                     <AssignmentInd fontSize="small" />
                     Edit course
@@ -159,7 +167,7 @@ export default function CourseCard({
                       setMenuOpen(false)
                       onDelete(course.id)
                     }}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50"
+                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
                     <DeleteOutline fontSize="small" />
                     Delete course
@@ -169,35 +177,27 @@ export default function CourseCard({
             )}
           </div>
 
-          <div className="absolute left-6 bottom-5 right-6 text-white">
-            <p className="text-[15px] font-medium text-white/90">
-              By: {course.author_name || 'Teacher name'}
-            </p>
-            <h3
-              className="mt-1 line-clamp-2 text-[28px] font-extrabold leading-[0.95] tracking-[-0.02em]"
-              title={course.title}
-            >
+          {/* Bottom — teacher + subject */}
+          <div className="absolute bottom-4 left-3.5 right-3.5 z-20">
+            <p className="text-white/80 text-[11px] mb-0.5">By: {course.author_name || 'Teacher name'}</p>
+            <h2 className="text-white text-[22px] font-bold leading-tight tracking-tight line-clamp-2">
               {course.title || 'Subject name'}
-            </h3>
+            </h2>
           </div>
         </div>
 
-        <div className="flex min-h-[220px] flex-col px-6 pb-5 pt-5">
-          <div>
-            <p className="text-[17px] font-semibold leading-none text-main">
-              {dueText}
-            </p>
-            <p className="mt-2 text-[14px] leading-none text-muted">
-              {activityText}
-            </p>
-          </div>
+        {/* Info Section */}
+        <div className="px-3.5 pt-3.5 pb-1.5">
+          <p className="text-sm font-bold text-main mb-0.5">{dueText}</p>
+          <p className="text-[13px] text-muted">{activityText}</p>
+        </div>
 
-          <div className="flex-1" />
-
+        {/* Button */}
+        <div className="px-3.5 pt-3 pb-4">
           <button
             type="button"
             onClick={openCourse}
-            className="mt-6 w-full rounded-[18px] bg-[#004b33] py-4 text-[18px] font-semibold text-white transition hover:bg-[#003c29]"
+            className="w-full rounded-lg bg-[#111827] py-3.5 text-[15px] font-semibold tracking-wide text-white transition-colors hover:bg-[#374151] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700"
           >
             Enter class
           </button>

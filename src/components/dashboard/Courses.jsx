@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Loading from '../Loading'
 import { useAuth } from '../../lib/AuthProvider'
+import { useCourseModal } from '../../lib/CourseModalContext'
 
 import CourseForm from '../courses/CourseForm'
-import EnrollForm from '../courses/EnrollForm'
 import MessageBanner from '../courses/MessageBanner'
 import EmptyCoursesState from '../courses/EmptyCoursesState'
 import CourseSection from '../courses/CourseSection'
@@ -14,23 +15,26 @@ import {
   safeJson,
 } from '../courses/utils'
 
-export default function Courses({ registerHeaderActions }) {
+function SummaryCard({ label, value, tone = 'bg-surface' }) {
+  return (
+    <div className={`rounded-lg border border-token p-4 shadow-sm ${tone}`}>
+      <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-subtle">{label}</div>
+      <div className="mt-3 text-3xl font-extrabold text-main">{value}</div>
+    </div>
+  )
+}
+
+export default function Courses() {
+  const navigate = useNavigate()
   const { user, profileName } = useAuth()
+  const { openCreate, setEditingCourse, closeCreate } = useCourseModal()
 
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
-
-  const [editing, setEditing] = useState(null)
-  const [showForm, setShowForm] = useState(false)
-  const [showEnrollForm, setShowEnrollForm] = useState(false)
-
   const [courseMsg, setCourseMsg] = useState('')
-  const [enrollMsg, setEnrollMsg] = useState('')
-  const [enrollCode, setEnrollCode] = useState('')
 
   const clearMessages = useCallback(() => {
     setCourseMsg('')
-    setEnrollMsg('')
   }, [])
 
   const load = useCallback(async () => {
@@ -47,14 +51,14 @@ export default function Courses({ registerHeaderActions }) {
       const data = await safeJson(res)
 
       if (!res.ok) {
-        setCourseMsg(getApiErrorMessage(data, 'Failed to load courses.'))
+        setCourseMsg(getApiErrorMessage(data, 'We could not load your courses.'))
         setCourses([])
       } else {
         setCourses(Array.isArray(data) ? data : [])
       }
     } catch (err) {
       console.error(err)
-      setCourseMsg('Failed to load courses. Please try again.')
+      setCourseMsg('We could not load your courses. Please try again.')
       setCourses([])
     } finally {
       setLoading(false)
@@ -65,35 +69,12 @@ export default function Courses({ registerHeaderActions }) {
     load()
   }, [load])
 
-  const openCreate = useCallback(() => {
-    clearMessages()
-    setEditing(null)
-    setShowEnrollForm(false)
-    setShowForm(true)
-  }, [clearMessages])
-
   const openEnroll = useCallback(() => {
-    clearMessages()
-    setEditing(null)
-    setShowForm(false)
-    setShowEnrollForm(true)
-  }, [clearMessages])
-
-  useEffect(() => {
-    if (!registerHeaderActions) return
-    registerHeaderActions({ openCreate, openEnroll })
-    return () => registerHeaderActions(null)
-  }, [registerHeaderActions, openCreate, openEnroll])
+    navigate('/courses/enroll')
+  }, [navigate])
 
   const closeCourseForm = () => {
-    setShowForm(false)
-    setEditing(null)
-  }
-
-  const closeEnrollForm = () => {
-    setShowEnrollForm(false)
-    setEnrollMsg('')
-    setEnrollCode('')
+    closeCreate()
   }
 
   const createOrUpdate = async (payload) => {
@@ -115,12 +96,12 @@ export default function Courses({ registerHeaderActions }) {
         const data = await safeJson(res)
 
         if (!res.ok) {
-          setCourseMsg(getApiErrorMessage(data, 'Update failed.'))
+          setCourseMsg(getApiErrorMessage(data, 'We could not update the course. Please try again.'))
           return
         }
 
         setCourses((prev) => prev.map((c) => (c.id === data.id ? data : c)))
-        setCourseMsg('Course updated successfully.')
+        setCourseMsg('Course updated.')
         closeCourseForm()
         return
       }
@@ -140,7 +121,7 @@ export default function Courses({ registerHeaderActions }) {
       let data = await safeJson(res)
 
       if (!res.ok || !data?.id) {
-        setCourseMsg(getApiErrorMessage(data, 'Course create response was incomplete. Reloading list.'))
+        setCourseMsg(getApiErrorMessage(data, 'We could not finish creating the course. Refreshing the list.'))
         await load()
         closeCourseForm()
         return
@@ -161,12 +142,7 @@ export default function Courses({ registerHeaderActions }) {
             if (patched) data = patched
           } else {
             const patchData = await safeJson(patchRes)
-            setCourseMsg(
-              getApiErrorMessage(
-                patchData,
-                'Course created, but code setup needs database migration.'
-              )
-            )
+            setCourseMsg(getApiErrorMessage(patchData, 'Course created, but the class code is not ready yet.'))
           }
         } catch (err) {
           console.warn('failed to patch course_code', err)
@@ -174,11 +150,11 @@ export default function Courses({ registerHeaderActions }) {
       }
 
       setCourses((prev) => [data, ...prev])
-      setCourseMsg(`Course created. Share code ${data.course_code || '(no code yet)'} so others can enroll.`)
+      setCourseMsg(`Course created. Share this code: ${data.course_code || 'code coming soon'}.`)
       closeCourseForm()
     } catch (err) {
       console.error(err)
-      setCourseMsg('Failed to create course. Please try again.')
+      setCourseMsg('We could not create the course. Please try again.')
     }
   }
 
@@ -198,15 +174,14 @@ export default function Courses({ registerHeaderActions }) {
     if (!window.confirm('Delete course?')) return
 
     try {
-      const res = await fetch(
-        `/api/courses/${id}?user_id=${encodeURIComponent(user.id)}`,
-        { method: 'DELETE' }
-      )
+      const res = await fetch(`/api/courses/${id}?user_id=${encodeURIComponent(user.id)}`, {
+        method: 'DELETE',
+      })
 
       const data = await safeJson(res)
 
       if (!res.ok) {
-        setCourseMsg(getApiErrorMessage(data, 'Failed to delete course.'))
+        setCourseMsg(getApiErrorMessage(data, 'We could not delete the course.'))
         return
       }
 
@@ -219,47 +194,8 @@ export default function Courses({ registerHeaderActions }) {
   }
 
   const enrollToCourse = async () => {
-    const code = enrollCode.trim().toUpperCase()
-
-    if (!code) {
-      setEnrollMsg('Enter a course code.')
-      return
-    }
-
-    try {
-      clearMessages()
-
-      const res = await fetch('/api/courses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enroll_code: code, user_id: user.id }),
-      })
-
-      const data = await safeJson(res)
-
-      if (!res.ok) {
-        setEnrollMsg(getApiErrorMessage(data, 'Course code not found.'))
-        return
-      }
-
-      const enrolledCourse = data?.course
-
-      if (enrolledCourse) {
-        setCourses((prev) => {
-          if (prev.some((c) => String(c.id) === String(enrolledCourse.id))) return prev
-          return [enrolledCourse, ...prev]
-        })
-        setEnrollMsg(`Enrolled to ${enrolledCourse.title}`)
-      } else {
-        setEnrollMsg('Enrolled successfully.')
-        await load()
-      }
-
-      setEnrollCode('')
-    } catch (err) {
-      console.error(err)
-      setEnrollMsg('Enrollment failed. Please try again.')
-    }
+    // Enrollment is now handled on the separate page
+    // This function can be removed
   }
 
   const teachingCourses = useMemo(
@@ -272,40 +208,45 @@ export default function Courses({ registerHeaderActions }) {
     [courses, user?.id]
   )
 
-  const activeMessage = courseMsg || enrollMsg
+  const activeMessage = courseMsg
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-4 md:p-8">
+    <div className="mx-auto max-w-7xl space-y-6 md:space-y-8">
+      <section className="rounded-lg border border-token bg-surface p-5 shadow-sm md:p-6">
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-subtle">Course center</p>
+            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-main md:text-4xl">
+              Manage your classes, share codes, and jump into each module workspace.
+            </h2>
+            <p className="mt-4 text-[15px] leading-7 text-muted md:text-base md:leading-8">
+              Create teaching spaces, join existing classes, and keep the student and teacher flows in one place.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button type="button" onClick={openCreate} className="rounded-lg border border-token bg-[#111827] px-5 py-3 text-sm font-semibold text-white shadow-sm">
+                Create course
+              </button>
+              <button type="button" onClick={openEnroll} className="rounded-lg border border-token bg-white px-5 py-3 text-sm font-semibold text-main shadow-sm">
+                Join course
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <SummaryCard label="All classes" value={courses.length} tone="bg-white" />
+            <SummaryCard label="Teaching" value={teachingCourses.length} tone="bg-white" />
+            <SummaryCard label="Enrolled" value={enrolledCourses.length} tone="bg-white" />
+          </div>
+        </div>
+      </section>
 
       <MessageBanner message={activeMessage} onClose={clearMessages} />
 
-      {(showForm || showEnrollForm) && (
-        <div className="rounded-3xl border border-token bg-surface p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold text-main">
-            {showForm ? (editing ? 'Edit Course' : 'Create New Course') : 'Join a Class'}
-          </h3>
-
-          {showForm && (
-            <CourseForm initial={editing || {}} onSave={createOrUpdate} onCancel={closeCourseForm} />
-          )}
-
-          {showEnrollForm && (
-            <EnrollForm
-              enrollCode={enrollCode}
-              setEnrollCode={setEnrollCode}
-              enrollMsg={enrollMsg}
-              onJoin={enrollToCourse}
-              onCancel={closeEnrollForm}
-            />
-          )}
-        </div>
-      )}
-
       {loading ? (
-        <Loading message="Loading courses…">
+        <Loading message="Loading courses...">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-72 animate-pulse rounded-3xl border border-token bg-surface" />
+              <div key={i} className="h-72 animate-pulse rounded-lg border border-token bg-surface" />
             ))}
           </div>
         </Loading>
@@ -321,9 +262,8 @@ export default function Courses({ registerHeaderActions }) {
             profileName={profileName}
             onCopyCode={copyCode}
             onEdit={(course) => {
-              setShowEnrollForm(false)
-              setEditing(course)
-              setShowForm(true)
+              setEditingCourse(course)
+              openCreate()
             }}
             onDelete={removeCourse}
           />
@@ -336,9 +276,8 @@ export default function Courses({ registerHeaderActions }) {
             profileName={profileName}
             onCopyCode={copyCode}
             onEdit={(course) => {
-              setShowEnrollForm(false)
-              setEditing(course)
-              setShowForm(true)
+              setEditingCourse(course)
+              openCreate()
             }}
             onDelete={removeCourse}
           />

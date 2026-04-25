@@ -1,153 +1,94 @@
-import React, { useState, useEffect } from 'react'
-import Button from '@mui/material/Button'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import AppBar from '@mui/material/AppBar'
-import Toolbar from '@mui/material/Toolbar'
-import Container from '@mui/material/Container'
+import {
+  AccessibilityNew,
+  ArrowForward,
+  CheckCircle,
+  Contrast,
+  MenuBook,
+  MotionPhotosOff,
+  Quiz,
+  School,
+} from '@mui/icons-material'
+import logofull from '../assets/logo_f.png'
+
+const navItems = [
+  { label: 'Easy to read', href: '#proof' },
+  { label: 'How it works', href: '#how-it-works' },
+  { label: 'Learning tools', href: '#accessibility' },
+  { label: 'FAQ', href: '#reviews' },
+]
+
+const accessCards = [
+  { title: 'High contrast', value: 'AA', tone: 'bg-[#e8f3de]' },
+  { title: 'Large text', value: '18px+', tone: 'bg-[#fff0a8]' },
+  { title: 'Motion control', value: 'Off', tone: 'bg-[#dfeaff]' },
+]
+
+const sidebarItems = [
+  { icon: <School fontSize="small" />, label: 'Courses', active: true },
+  { icon: <Quiz fontSize="small" />, label: 'Quizzes' },
+  { icon: <Contrast fontSize="small" />, label: 'Contrast' },
+  { icon: <AccessibilityNew fontSize="small" />, label: 'Help' },
+]
 
 export default function Hero() {
-  const [isVisible, setIsVisible] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
-  // Entrance animation trigger
   useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 100)
-    
-    // Scroll listener for sticky effect
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setIsScrolled(true)
-      } else {
-        setIsScrolled(false)
-      }
-    }
-
+    const handleScroll = () => setIsScrolled(window.scrollY > 20)
+    handleScroll()
     window.addEventListener('scroll', handleScroll)
-    return () => {
-      clearTimeout(timer)
-      window.removeEventListener('scroll', handleScroll)
-    }
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   return (
-    <header
-      className="pb-20 min-h-screen flex flex-col vertical-offset 0 -100px 100px -50px rgba(0, 255, 0, 0.5)"
-      style={{
-        backgroundImage: "url('/src/assets/heroo.png')",
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center',
-        backgroundSize: 'cover',
-        backgroundAttachment: 'absolute'
-      }}
-    >
-      <AppBar 
-        // Changed position to "fixed" for stickiness
-        position="fixed" 
-        elevation={isScrolled ? 4 : 0} 
-        sx={{
-          transition: 'all 0.4s ease-in-out',
-          // Changes background and padding when scrolled
-          backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.95)' : 'transparent',
-          backdropFilter: isScrolled ? 'blur(10px)' : 'none',
-          paddingTop: isScrolled ? '0px' : '24px',
-          color: isScrolled ? '#000' : 'inherit'
-        }}
-        className={`transform ${
-          isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
-        }`}
-      >
-        <Toolbar className="container mx-auto flex justify-center items-center gap-20 font-['Poppins']">
-          <div className="flex items-center">
-            <img 
-              src="/src/assets/logo_f.png" 
-              alt="logo" 
-              className={`object-contain transition-all duration-300 ${isScrolled ? 'w-[80px] h-[60px]' : 'w-[115px] h-[84px]'}`} 
-            />
-          </div>
+    <header className="relative overflow-hidden bg-[#fffdfa] px-4 pb-16 pt-5 md:px-6 md:pb-24">
+      <div className={`z-50 mx-auto max-w-6xl transition-all duration-300 ease-out ${isScrolled ? 'fixed inset-x-0 top-0 px-4 pt-3 md:px-6' : 'relative'}`}>
+        <div className={`landing-nav mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-lg bg-#FFFDFA px-4 backdrop-blur-md transition-all duration-300 ease-out md:px-5 ${isScrolled ? 'landing-nav-pop bg-white py-2 shadow-[0_12px_32px_rgba(29,36,51,0.14)]' : 'mt-2 py-3 shadow-none'}`}>
+          <Link to="/" className="flex items-center gap-3" aria-label="Academee home">
+            <img src={logofull} alt="Academee" className={`w-36 object-contain transition-all duration-300 ${isScrolled ? 'h-9 md:h-10' : 'h-10 md:h-12'}`} />
+          </Link>
 
-          <nav className="hidden md:flex gap-6 text-sm font-medium">
-            {['About Us', 'Features', 'Testimonials', 'Contact Us'].map((item, index) => (
-              <a 
-                key={item}
-                className="hover:text-green-700 cursor-pointer transition-colors"
-                style={{ 
-                  opacity: isVisible ? 1 : 0,
-                  transitionDelay: isVisible ? `${index * 100 + 500}ms` : '0ms'
-                }}
-              >
-                {item}
+          <nav className="hidden items-center gap-6 text-sm font-semibold text-main lg:flex">
+            {navItems.map((item) => (
+              <a key={item.href} href={item.href} className="landing-nav-link underline-offset-4">
+                {item.label}
               </a>
             ))}
           </nav>
 
-          <div className="hidden md:block">
-            <Button 
-              component={Link} 
-              to="/login" 
-              variant="contained" 
-              size={isScrolled ? "small" : "medium"}
-              sx={{ 
-                backgroundColor: 'var(--green-1)', 
-                textTransform: 'none', 
-                borderRadius: '20px',
-                transition: 'all 0.3s'
-              }}
-            >
-              Get Started
-            </Button>
+          <div className="flex items-center gap-3">
+            <Link to="/login" className="hidden text-sm font-semibold text-main underline-offset-4 hover:underline sm:inline-flex">
+              Log in
+            </Link>
+            <Link to="/signup" className="landing-pill landing-pill-primary">
+              Create account
+            </Link>
           </div>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="md" className="text-center pt-12 overflow-hidden">
-        {/* Headline: Slides up from 'full' to '0' */}
-        <div className="overflow-hidden mb-4 pt-20">
-          <h1 className={`font-['Poppins'] text-5xl font-bold text-main transition-all duration-1000 transform 
-            ${isVisible ? 'translate-y-0 opacity-100 ease-out' : 'translate-y-full opacity-0'}`}>
-            Master Your Learning with <br />
-            <span className="text-blue-600 italic">Adaptive Feedback</span>
-          </h1>
         </div>
+      </div>
 
-        {/* Subtext: Delayed for staggered effect */}
-        <div className="overflow-hidden mb-8">
-          <p className={`font-['Montserrat'] max-w-3xl mx-auto font-medium text-black-700 transition-all duration-1000 delay-300 transform
-            ${isVisible ? 'translate-y-0 opacity-100 ease-out' : 'translate-y-full opacity-0'}`}>
-            Breaking barriers in education with an accessible, distraction-free environment and smart feedback mechanisms tailored for learners of all abilities.
-          </p>
+      <div className="mx-auto mt-14 max-w-6xl text-center md:mt-12">
+        <p className="mx-auto inline-flex items-center gap-2 rounded-md border border-token bg-[#e8f3de] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-main">
+          Easy lessons with helpful quiz tips
+        </p>
+        <h1 className="mx-auto mt-6 max-w-4xl text-5xl font-extrabold leading-[0.98] tracking-tight text-main sm:text-6xl lg:text-[5.4rem]">
+          Learning that feels clear, calm, and supportive.
+        </h1>
+        <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-8 text-muted md:text-lg">
+          Academee helps students read lessons comfortably, move around easily, and get simple quiz tips that show what to review next.
+        </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link to="/signup" className="landing-pill landing-pill-primary min-w-44">
+            Get started
+            <ArrowForward fontSize="small" />
+          </Link>
+          <Link to="/login" className="landing-pill landing-pill-secondary min-w-36">
+            Log in
+          </Link>
         </div>
-
-        {/* Button: Uses Scale + Opacity for a different "pop-in" feel */}
-        <div className="flex justify-center gap-4 mb-10 font-['Poppins']">
-          <Button 
-            component={Link} 
-            to="/login" 
-            variant="contained" 
-            size="large" 
-            sx={{
-              backgroundColor: 'var(--green-1)', 
-              textTransform: 'none', 
-              borderRadius: '20px', 
-              opacity: isVisible ? 1 : 0, 
-              transform: isVisible ? 'scale(1)' : 'scale(0.9)', 
-              transition: 'opacity 1s ease-out 0.6s, transform 1s ease-out 0.6s' 
-            }}
-          >
-            Start Learning Now
-          </Button>
-        </div>
-      </Container>
-
-      {/* Hero Image: Slides up from below */}
-        <div
-            className={`absolute left-0 right-0 bottom-0 top-64 w-full rounded-xl-card h-[250px] md:h-[550px] transition-all duration-1000 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}
-            style={{
-            backgroundImage: "url('/src/assets/hero_sample.png')",
-            backgroundSize: 'contain',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center'
-          }}
-        ></div>
+      </div>
     </header>
   )
 }
