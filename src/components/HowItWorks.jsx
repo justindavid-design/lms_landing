@@ -20,7 +20,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-[#f7f4ee] px-4 py-16 md:px-10 md:py-24 lg:px-16">
+    <section id="how-it-works" className="bg-surface px-4 py-16 md:px-10 md:py-24 lg:px-16">
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <div>
           <p className="landing-eyebrow">How it works</p>
@@ -34,11 +34,11 @@ export default function HowItWorks() {
           </Link>
         </div>
 
-        <div className="landing-card bg-white p-4 md:p-6">
+        <div className="landing-card bg-surface p-4 md:p-6">
           <div className="grid gap-4">
             {steps.map((step, index) => (
-              <article key={step.title} className="grid gap-4 rounded-lg border border-token bg-white p-5 sm:grid-cols-[auto_1fr]">
-                <div className={`flex h-12 w-12 items-center justify-center rounded-lg border border-token text-sm font-bold text-main ${index === 0 ? 'bg-[#fff0a8]' : index === 1 ? 'bg-[#dfeaff]' : 'bg-[#e8f3de]'}`}>
+              <article key={step.title} className="grid gap-4 rounded-lg border border-token bg-surface-alt p-5 sm:grid-cols-[auto_1fr]">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-lg border border-token text-sm font-bold text-main ${index === 0 ? 'bg-[#fff0a8] dark:bg-surface' : index === 1 ? 'bg-[#dfeaff] dark:bg-surface' : 'bg-[#e8f3de] dark:bg-surface'}`}>
                   {String(index + 1).padStart(2, '0')}
                 </div>
                 <div>
@@ -49,10 +49,10 @@ export default function HowItWorks() {
             ))}
           </div>
 
-          <div className="mt-5 rounded-lg border border-token bg-[#1d2433] p-5 text-white">
+          <div className="mt-5 rounded-lg border border-token bg-surface-alt p-5 text-main">
             <div className="flex items-start gap-3">
               <img src = {logo}  className='w-8 mt-4'/>
-              <p className="ml-2 text-sm font-medium leading-7 text-white/85">
+              <p className="ml-2 text-sm font-medium leading-7 text-muted">
                 Everything is easy to find in one place: courses, quizzes, tasks, comfort settings, and past quiz tips.
               </p>
             </div>

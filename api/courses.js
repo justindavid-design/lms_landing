@@ -33,14 +33,47 @@ async function ensureUniqueCourseCode(db, code) {
 }
 
 async function enrichCourses(rows = []) {
-  const profilesById = await fetchProfilesByIds((rows || []).map((course) => course.author))
-  const summaries = await Promise.all((rows || []).map((course) => buildCourseSummary(course.id)))
+  const courses = rows || []
+  const courseIds = courses.map((course) => course.id).filter(Boolean)
+  const db = getSupabase()
 
-  return (rows || []).map((course, index) => ({
+  const { data: enrollments, error: enrollmentError } = courseIds.length
+    ? await db
+        .from('enrollments')
+        .select('course_id, user_id, role, created_at')
+        .in('course_id', courseIds)
+        .order('created_at', { ascending: true })
+    : { data: [], error: null }
+
+  if (enrollmentError) throw enrollmentError
+
+  const profileIds = [
+    ...courses.map((course) => course.author),
+    ...(enrollments || []).map((enrollment) => enrollment.user_id),
+  ]
+  const profilesById = await fetchProfilesByIds(profileIds)
+  const summaries = await Promise.all(courses.map((course) => buildCourseSummary(course.id)))
+  const enrollmentsByCourse = (enrollments || []).reduce((acc, enrollment) => {
+    const profile = profilesById[enrollment.user_id] || {}
+    if (!acc[enrollment.course_id]) acc[enrollment.course_id] = []
+    acc[enrollment.course_id].push({
+      id: enrollment.user_id,
+      display_name: profile.display_name || 'Student',
+      avatar_url: profile.avatar_url || null,
+      role: enrollment.role || profile.role || 'student',
+      enrolled_at: enrollment.created_at,
+    })
+    return acc
+  }, {})
+
+  return courses.map((course, index) => ({
     ...course,
     cover_image: course.cover_url || null,
     author_name: profilesById[course.author]?.display_name || null,
+    author_avatar_url: profilesById[course.author]?.avatar_url || null,
     teacher_role: profilesById[course.author]?.role || null,
+    enrolled_students: enrollmentsByCourse[course.id] || [],
+    learner_count: summaries[index]?.student_count || 0,
     ...summaries[index],
   }))
 }

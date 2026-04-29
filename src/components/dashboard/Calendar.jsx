@@ -121,7 +121,7 @@ export default function Calendar(){
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+            className="rounded-lg border border-token bg-surface px-4 py-2 text-sm font-medium text-main transition-colors hover-surface"
           >
             <option value="all">All Courses</option>
             {courses.map((course) => (
@@ -131,11 +131,11 @@ export default function Calendar(){
             ))}
           </select>
         </div>
-        <div className="relative inline-flex items-center rounded-full border border-gray-300 bg-gray-100 p-1 dark:border-zinc-700 dark:bg-zinc-900 ml-auto">
+        <div className="relative ml-auto inline-flex items-center rounded-full border border-token bg-app p-1">
           {/* Sliding Background Indicator */}
           <div
             aria-hidden="true"
-            className={`absolute h-[calc(100%-8px)] w-[calc(50%-4px)] rounded-full bg-white shadow-sm transition-all duration-300 ease-in-out dark:bg-zinc-800 dark:shadow-zinc-950/50 ${view === "calendar" ? "translate-x-full" : "translate-x-0"}`}
+            className={`absolute h-[calc(100%-8px)] w-[calc(50%-4px)] rounded-full bg-surface shadow-sm transition-all duration-300 ease-in-out ${view === "calendar" ? "translate-x-full" : "translate-x-0"}`}
           />
           {/* List Button */}
           <button
@@ -145,7 +145,7 @@ export default function Calendar(){
             className={`
       relative z-10 flex h-9 w-12 items-center justify-center rounded-full 
       transition-colors duration-200
-      ${view === "list" ? "text-zinc-900 dark:text-white" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"}
+      ${view === "list" ? "text-main" : "text-muted hover:text-main"}
     `}
           >
             <FormatListBulleted fontSize="small" />
@@ -160,7 +160,7 @@ export default function Calendar(){
             className={`
       relative z-10 flex h-9 w-12 items-center justify-center rounded-full 
       transition-colors duration-200
-      ${view === "calendar" ? "text-zinc-900 dark:text-white" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"}
+      ${view === "calendar" ? "text-main" : "text-muted hover:text-main"}
     `}
           >
             <CalendarMonth fontSize="small" />
@@ -208,7 +208,7 @@ export default function Calendar(){
                             {event.course_title}
                           </div>
                         </div>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">
+                        <span className="rounded-full border border-token bg-surface-alt px-3 py-1 text-xs font-semibold uppercase text-main">
                           {event.kind}
                         </span>
                       </div>

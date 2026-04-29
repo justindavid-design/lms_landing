@@ -5,6 +5,7 @@ import {
   FolderOpen,
   CopyAll,
   DeleteOutline,
+  ShowChart,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { getCourseImage } from './utils'
@@ -26,11 +27,35 @@ function getActivityText(course) {
   return 'Activity #2 (NAT)'
 }
 
+function getInitials(name) {
+  return String(name || 'Student')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'S'
+}
+
+function StudentAvatar({ student, offset = false }) {
+  const name = student?.display_name || 'Student'
+
+  return (
+    <div
+      className={`flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white bg-[#111827] text-[9px] font-bold text-white ${offset ? '-ml-2' : ''}`}
+      title={name}
+    >
+      {student?.avatar_url ? (
+        <img src={student.avatar_url} alt={name} className="h-full w-full object-cover" loading="lazy" />
+      ) : (
+        getInitials(name)
+      )}
+    </div>
+  )
+}
+
 export default function CourseCard({
   course,
   isTeacher,
-  profileName,
-  userEmail,
   onCopyCode,
   onEdit,
   onDelete,
@@ -39,17 +64,19 @@ export default function CourseCard({
   const menuRef = useRef(null)
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const teacherInitial = (course.author_name || 'T').trim().charAt(0).toUpperCase()
-  const userInitial = (profileName || userEmail || 'U').trim().charAt(0).toUpperCase()
-
   const imageUrl = useMemo(() => {
     return course.cover_image || getCourseImage(course.id || course.slug || course.title)
   }, [course])
 
   const learnerCount = useMemo(() => {
     if (typeof course.learner_count === 'number') return course.learner_count
-    return 18
+    if (typeof course.student_count === 'number') return course.student_count
+    return Array.isArray(course.enrolled_students) ? course.enrolled_students.length : 0
   }, [course])
+
+  const visibleStudents = useMemo(() => {
+    return Array.isArray(course.enrolled_students) ? course.enrolled_students.slice(0, 3) : []
+  }, [course.enrolled_students])
 
   const dueText = useMemo(() => formatDueText(course.next_due_at), [course.next_due_at])
   const activityText = useMemo(() => getActivityText(course), [course])
@@ -81,48 +108,79 @@ export default function CourseCard({
   return (
     <div className="w-[280px]">
       <div className="overflow-hidden rounded-lg border border-token bg-surface shadow-sm transition-shadow hover:shadow-md">
-        {/* Thumbnail Section */}
-        <div className="relative h-[200px] bg-gray-800 overflow-hidden">
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/65 z-10" />
+        <div className="relative h-[135px] overflow-hidden bg-gray-800">
+          <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
 
-          {/* Course image */}
           <img
             src={imageUrl}
             alt={course.title || 'Course thumbnail'}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
             loading="lazy"
           />
 
-          {/* Top left — avatars + count */}
-          <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5">
-            <div className="flex">
-              <div className="w-6 h-6 rounded-full bg-[#111827] border border-white flex items-center justify-center text-white text-[10px] font-bold">
-                {teacherInitial}
+          <div className="absolute left-2.5 top-2.5 z-20 flex items-center gap-1.5">
+            {visibleStudents.length > 0 ? (
+              <div className="flex" aria-label={`${learnerCount} enrolled students`}>
+                {visibleStudents.map((student, index) => (
+                  <StudentAvatar key={student.id || index} student={student} offset={index > 0} />
+                ))}
               </div>
-              <div className="w-6 h-6 rounded-full bg-[#6b7280] border border-white -ml-2 flex items-center justify-center text-white text-[10px] font-bold">
-                {userInitial}
-              </div>
-            </div>
-            <div className="bg-black/50 rounded-full px-2 py-0.5">
-              <span className="text-white text-xs font-medium">{learnerCount}</span>
+            ) : null}
+            <div className="rounded-full bg-black/55 px-2 py-0.5" title={`${learnerCount} enrolled student${learnerCount === 1 ? '' : 's'}`}>
+              <span className="text-xs font-medium text-white">{learnerCount}</span>
             </div>
           </div>
 
-          {/* Top right — menu */}
-          <div ref={menuRef} className="absolute top-2.5 right-3 z-20">
+          <button
+            type="button"
+            onClick={openCourse}
+            className="absolute inset-0 z-10"
+            aria-label={`Open ${course.title || 'course'}`}
+          />
+
+          <div className="absolute bottom-4 left-3.5 right-3.5 z-20">
+            <p className="mb-0.5 text-[11px] text-white/80">By: {course.author_name || 'Teacher name'}</p>
+            <h2 className="line-clamp-2 text-[22px] font-bold leading-tight tracking-tight text-white">
+              {course.title || 'Subject name'}
+            </h2>
+          </div>
+        </div>
+
+        <div className="min-h-[150px] border-b border-token px-3.5 pb-4 pt-4">
+          <p className="mb-0.5 text-sm font-bold text-main">{dueText}</p>
+          <p className="text-[13px] text-muted">{activityText}</p>
+        </div>
+
+        <div className="flex h-[52px] items-center justify-end gap-4 bg-surface px-3">
+          <button
+            type="button"
+            onClick={openCourse}
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface-alt hover:text-main"
+            aria-label="Open class activity"
+          >
+            <ShowChart fontSize="small" />
+          </button>
+          <button
+            type="button"
+            onClick={openCourse}
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface-alt hover:text-main"
+            aria-label="Open class folder"
+          >
+            <FolderOpen fontSize="small" />
+          </button>
+          <div ref={menuRef} className="relative">
             <button
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="text-white text-lg tracking-widest hover:opacity-80 transition-opacity"
+              className="rounded-full p-2 text-muted transition-colors hover:bg-surface-alt hover:text-main"
               aria-label="Card options"
               aria-expanded={menuOpen}
             >
-              ···
+              <MoreVert fontSize="small" />
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-lg border border-token bg-surface shadow-xl">
+              <div className="absolute bottom-full right-0 z-20 mb-2 w-44 overflow-hidden rounded-lg border border-token bg-surface shadow-xl">
                 <button
                   type="button"
                   onClick={openCourse}
@@ -176,31 +234,6 @@ export default function CourseCard({
               </div>
             )}
           </div>
-
-          {/* Bottom — teacher + subject */}
-          <div className="absolute bottom-4 left-3.5 right-3.5 z-20">
-            <p className="text-white/80 text-[11px] mb-0.5">By: {course.author_name || 'Teacher name'}</p>
-            <h2 className="text-white text-[22px] font-bold leading-tight tracking-tight line-clamp-2">
-              {course.title || 'Subject name'}
-            </h2>
-          </div>
-        </div>
-
-        {/* Info Section */}
-        <div className="px-3.5 pt-3.5 pb-1.5">
-          <p className="text-sm font-bold text-main mb-0.5">{dueText}</p>
-          <p className="text-[13px] text-muted">{activityText}</p>
-        </div>
-
-        {/* Button */}
-        <div className="px-3.5 pt-3 pb-4">
-          <button
-            type="button"
-            onClick={openCourse}
-            className="w-full rounded-lg bg-[#111827] py-3.5 text-[15px] font-semibold tracking-wide text-white transition-colors hover:bg-[#374151] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700"
-          >
-            Enter class
-          </button>
         </div>
       </div>
     </div>

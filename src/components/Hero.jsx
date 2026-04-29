@@ -20,9 +20,9 @@ const navItems = [
 ]
 
 const accessCards = [
-  { title: 'High contrast', value: 'AA', tone: 'bg-[#e8f3de]' },
-  { title: 'Large text', value: '18px+', tone: 'bg-[#fff0a8]' },
-  { title: 'Motion control', value: 'Off', tone: 'bg-[#dfeaff]' },
+  { title: 'High contrast', value: 'AA', tone: 'bg-[#e8f3de] dark:bg-surface-alt' },
+  { title: 'Large text', value: '18px+', tone: 'bg-[#fff0a8] dark:bg-surface-alt' },
+  { title: 'Motion control', value: 'Off', tone: 'bg-[#dfeaff] dark:bg-surface-alt' },
 ]
 
 const sidebarItems = [
@@ -43,9 +43,9 @@ export default function Hero() {
   }, [])
 
   return (
-    <header className="relative overflow-hidden bg-[#fffdfa] px-4 pb-16 pt-5 md:px-6 md:pb-24">
+    <header className="relative overflow-hidden bg-app px-4 pb-16 pt-5 md:px-6 md:pb-24">
       <div className={`z-50 mx-auto max-w-6xl transition-all duration-300 ease-out ${isScrolled ? 'fixed inset-x-0 top-0 px-4 pt-3 md:px-6' : 'relative'}`}>
-        <div className={`landing-nav mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-lg bg-#FFFDFA px-4 backdrop-blur-md transition-all duration-300 ease-out md:px-5 ${isScrolled ? 'landing-nav-pop bg-white py-2 shadow-[0_12px_32px_rgba(29,36,51,0.14)]' : 'mt-2 py-3 shadow-none'}`}>
+        <div className={`landing-nav mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-lg bg-surface/95 px-4 backdrop-blur-md transition-all duration-300 ease-out md:px-5 ${isScrolled ? 'landing-nav-pop py-2 shadow-[0_12px_32px_rgba(29,36,51,0.14)]' : 'mt-2 py-3 shadow-none'}`}>
           <Link to="/" className="flex items-center gap-3" aria-label="Academee home">
             <img src={logofull} alt="Academee" className={`w-36 object-contain transition-all duration-300 ${isScrolled ? 'h-9 md:h-10' : 'h-10 md:h-12'}`} />
           </Link>
@@ -70,7 +70,7 @@ export default function Hero() {
       </div>
 
       <div className="mx-auto mt-14 max-w-6xl text-center md:mt-12">
-        <p className="mx-auto inline-flex items-center gap-2 rounded-md border border-token bg-[#e8f3de] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-main">
+        <p className="mx-auto inline-flex items-center gap-2 rounded-md border border-token bg-surface-alt px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-main">
           Easy lessons with helpful quiz tips
         </p>
         <h1 className="mx-auto mt-6 max-w-4xl text-5xl font-extrabold leading-[0.98] tracking-tight text-main sm:text-6xl lg:text-[5.4rem]">

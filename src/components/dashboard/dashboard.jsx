@@ -7,6 +7,7 @@ import { useAuth } from '../../lib/AuthProvider'
 import { useCourseName } from '../../lib/CourseNameContext'
 import { CourseModalProvider, useCourseModal } from '../../lib/CourseModalContext'
 import CourseModalOverlay from '../CourseModalOverlay'
+import NotificationPanel from './NotificationPanel'
 
 function DashboardContent({ children }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -100,6 +101,9 @@ function DashboardContent({ children }) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Notification Panel */}
+          <NotificationPanel />
+
           <div className="relative">
             <button
               onClick={() => setShowCourseMenu(!showCourseMenu)}

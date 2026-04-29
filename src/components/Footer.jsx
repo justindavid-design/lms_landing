@@ -12,7 +12,7 @@ const sectionLinks = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-token bg-white px-4 py-12 text-main md:px-10 lg:px-16">
+    <footer className="border-t border-token bg-surface px-4 py-12 text-main md:px-10 lg:px-16">
       <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-[1fr_auto_auto] md:items-start">
         <div>
           <img src={logo} alt="Academee" className="h-14 w-auto object-contain" />

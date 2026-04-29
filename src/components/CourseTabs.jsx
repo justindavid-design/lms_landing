@@ -1,10 +1,11 @@
 import React from 'react'
-import { LibraryBooks, Description, Assignment, BarChart } from '@mui/icons-material'
+import { LibraryBooks, Description, Assignment, BarChart, TrendingUp } from '@mui/icons-material'
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: LibraryBooks },
   { id: 'materials', label: 'Materials', icon: Description },
   { id: 'assignments', label: 'Assignments', icon: Assignment },
+  { id: 'progress', label: 'Progress', icon: TrendingUp },
   { id: 'grades', label: 'Grades', icon: BarChart },
 ]
 

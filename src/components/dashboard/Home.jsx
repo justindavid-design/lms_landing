@@ -128,7 +128,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => navigate('/tasks')}
-                  className="rounded-lg border border-token bg-white px-5 py-3 text-sm font-semibold text-main transition hover-surface"
+                  className="rounded-lg border border-token bg-surface px-5 py-3 text-sm font-semibold text-main transition hover-surface"
                 >
                   Review tasks
                 </button>
@@ -136,17 +136,17 @@ export default function Home() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-lg border border-token bg-white p-4">
+              <div className="rounded-lg border border-token bg-surface-alt p-4">
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-subtle">Courses</div>
                 <div className="mt-2 text-2xl font-extrabold text-main">{courses.length}</div>
                 <div className="mt-1 text-sm text-muted">Active classroom spaces</div>
               </div>
-              <div className="rounded-lg border border-token bg-white p-4">
+              <div className="rounded-lg border border-token bg-surface-alt p-4">
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-subtle">Due soon</div>
                 <div className="mt-2 text-2xl font-extrabold text-main">{dueSoonCount}</div>
                 <div className="mt-1 text-sm text-muted">Items needing attention</div>
               </div>
-              <div className="rounded-lg border border-token bg-white p-4">
+              <div className="rounded-lg border border-token bg-surface-alt p-4">
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-subtle">Reviews</div>
                 <div className="mt-2 text-2xl font-extrabold text-main">{reviewCount}</div>
                 <div className="mt-1 text-sm text-muted">Pending teacher feedback</div>

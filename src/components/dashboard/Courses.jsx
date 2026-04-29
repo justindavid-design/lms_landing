@@ -226,16 +226,16 @@ export default function Courses() {
               <button type="button" onClick={openCreate} className="rounded-lg border border-token bg-[#111827] px-5 py-3 text-sm font-semibold text-white shadow-sm">
                 Create course
               </button>
-              <button type="button" onClick={openEnroll} className="rounded-lg border border-token bg-white px-5 py-3 text-sm font-semibold text-main shadow-sm">
+              <button type="button" onClick={openEnroll} className="rounded-lg border border-token bg-surface px-5 py-3 text-sm font-semibold text-main shadow-sm hover-surface">
                 Join course
               </button>
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            <SummaryCard label="All classes" value={courses.length} tone="bg-white" />
-            <SummaryCard label="Teaching" value={teachingCourses.length} tone="bg-white" />
-            <SummaryCard label="Enrolled" value={enrolledCourses.length} tone="bg-white" />
+            <SummaryCard label="All classes" value={courses.length} tone="bg-surface-alt" />
+            <SummaryCard label="Teaching" value={teachingCourses.length} tone="bg-surface-alt" />
+            <SummaryCard label="Enrolled" value={enrolledCourses.length} tone="bg-surface-alt" />
           </div>
         </div>
       </section>

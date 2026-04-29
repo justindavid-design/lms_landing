@@ -7,25 +7,25 @@ const features = [
     title: 'Easy-to-read colors',
     description: 'Text, buttons, and backgrounds are chosen to be clear and comfortable for students.',
     icon: <Contrast />,
-    tone: 'bg-[#fff0a8]',
+    tone: 'bg-[#fff0a8] dark:bg-surface',
   },
   {
     title: 'Works without a mouse',
     description: 'Students can move through pages, buttons, and forms using the keyboard.',
     icon: <Keyboard />,
-    tone: 'bg-[#e8f3de]',
+    tone: 'bg-[#e8f3de] dark:bg-surface',
   },
   {
     title: 'Simple pages',
     description: 'Large labels, steady spacing, and clear sections help students find what they need.',
     icon: <Visibility />,
-    tone: 'bg-[#dfeaff]',
+    tone: 'bg-[#dfeaff] dark:bg-surface',
   },
 ]
 
 export default function Features() {
   return (
-    <section id="proof" className="bg-[#fffdfa] px-4 py-16 md:px-10 md:py-24 lg:px-16">
+    <section id="proof" className="bg-app px-4 py-16 md:px-10 md:py-24 lg:px-16">
       <Container maxWidth="lg" className="!px-0">
         <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
           <div>
@@ -40,7 +40,7 @@ export default function Features() {
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {features.map((feature) => (
             <article key={feature.title} className={`landing-card ${feature.tone} p-6`}>
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-token bg-white text-main">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-token bg-surface-alt text-main">
                 {feature.icon}
               </div>
               <h3 className="mt-8 text-2xl font-extrabold leading-tight tracking-tight text-main">{feature.title}</h3>

@@ -15,6 +15,7 @@ const profiles = require(path.resolve(__dirname, 'api', 'profiles'))
 const submissions = require(path.resolve(__dirname, 'api', 'submissions'))
 const tasks = require(path.resolve(__dirname, 'api', 'tasks'))
 const calendar = require(path.resolve(__dirname, 'api', 'calendar'))
+const progress = require(path.resolve(__dirname, 'api', 'progress'))
 
 const app = express()
 const PORT = process.env.API_PORT || 8787
@@ -161,6 +162,15 @@ app.patch('/api/submissions/:submissionId', async (req, res) => {
 app.all('/api/notifications', async (req, res) => {
   try{
     await notifications(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.get('/api/progress', async (req, res) => {
+  try{
+    await progress(req, res)
   }catch(err){
     console.error(err)
     res.status(500).json({ error: err.message || String(err) })

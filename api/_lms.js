@@ -169,7 +169,7 @@ async function fetchProfilesByIds(ids = []) {
 
   const { data, error } = await getSupabase()
     .from('profiles')
-    .select('id, display_name, role')
+    .select('id, display_name, avatar_url, role')
     .in('id', uniqueIds)
 
   if (error) throw error

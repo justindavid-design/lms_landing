@@ -174,7 +174,95 @@ module.exports = async (req, res) => {
       })
     }
 
-    res.setHeader('Allow', 'GET, POST')
+    if (req.method === 'PATCH') {
+      const access = await ensureCourseAccess(courseId, userId, { teacherOnly: true })
+      const body = req.body || {}
+      if (!body.quiz_id || !body.assignment_id) return res.status(400).json({ error: 'quiz_id and assignment_id required' })
+
+      const normalizedQuestions = normalizeQuizQuestions(body.questions)
+
+      const quizUpdates = {
+        title: body.title,
+        description: body.description,
+        published: body.status === 'published',
+        meta: {
+          questions: normalizedQuestions,
+        },
+      }
+
+      Object.keys(quizUpdates).forEach((key) => quizUpdates[key] === undefined && delete quizUpdates[key])
+
+      const { data: updatedQuiz, error: quizError } = await getSupabase()
+        .from('quizzes')
+        .update(quizUpdates)
+        .eq('id', body.quiz_id)
+        .eq('course_id', courseId)
+        .select()
+        .maybeSingle()
+
+      if (quizError) throw quizError
+      if (!updatedQuiz) return res.status(404).json({ error: 'quiz not found' })
+
+      const assignmentUpdates = {
+        title: body.title,
+        instructions: body.instructions || body.description || null,
+        status: body.status,
+        due_at: body.due_at,
+      }
+
+      Object.keys(assignmentUpdates).forEach((key) => assignmentUpdates[key] === undefined && delete assignmentUpdates[key])
+
+      const { data: updatedAssignment, error: assignmentError } = await getSupabase()
+        .from('assignments')
+        .update(assignmentUpdates)
+        .eq('id', body.assignment_id)
+        .eq('course_id', courseId)
+        .select()
+        .maybeSingle()
+
+      if (assignmentError) throw assignmentError
+      if (!updatedAssignment) return res.status(404).json({ error: 'assignment not found' })
+
+      return res.status(200).json({
+        ...updatedQuiz,
+        assignment_id: updatedAssignment.id,
+        due_at: updatedAssignment.due_at,
+        status: updatedAssignment.status,
+        question_count: normalizedQuestions.length,
+      })
+    }
+
+    if (req.method === 'DELETE') {
+      await ensureCourseAccess(courseId, userId, { teacherOnly: true })
+      const body = req.body || {}
+      if (!body.quiz_id || !body.assignment_id) return res.status(400).json({ error: 'quiz_id and assignment_id required' })
+
+      const { data: deletedAssignment, error: assignmentError } = await getSupabase()
+        .from('assignments')
+        .delete()
+        .eq('id', body.assignment_id)
+        .eq('course_id', courseId)
+        .eq('kind', 'quiz')
+        .select()
+        .maybeSingle()
+
+      if (assignmentError) throw assignmentError
+      if (!deletedAssignment) return res.status(404).json({ error: 'assignment not found' })
+
+      const { data: deletedQuiz, error: quizError } = await getSupabase()
+        .from('quizzes')
+        .delete()
+        .eq('id', body.quiz_id)
+        .eq('course_id', courseId)
+        .select()
+        .maybeSingle()
+
+      if (quizError) throw quizError
+
+      return res.status(200).json({ ok: true, deleted: { quiz: deletedQuiz, assignment: deletedAssignment } })
+    }
+
+    res.setHeader('Allow', 'GET, POST, PATCH, DELETE')
     return res.status(405).end('Method Not Allowed')
   } catch (err) {
     return respondWithError(res, err)

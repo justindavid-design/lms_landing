@@ -6,17 +6,17 @@ const communityCards = [
   {
     title: 'Simple home page',
     body: 'Students can continue lessons, answer quizzes, and read tips without clutter.',
-    tone: 'bg-[#dfeaff]',
+    tone: 'bg-[#dfeaff] dark:bg-surface',
   },
   {
     title: 'Help is easier to spot',
     body: 'Teachers can see who may need support without reading complicated reports.',
-    tone: 'bg-[#e8f3de]',
+    tone: 'bg-[#e8f3de] dark:bg-surface',
   },
   {
     title: 'Ready for more learners',
     body: 'Clear pages and comfort settings help more students take part from the start.',
-    tone: 'bg-[#fff0a8]',
+    tone: 'bg-[#fff0a8] dark:bg-surface',
   },
 ]
 
@@ -45,7 +45,7 @@ const faqs = [
 
 export default function Testimonials() {
   return (
-    <section id="reviews" className="bg-[#f7f4ee] px-4 py-16 md:px-10 md:py-24 lg:px-16">
+    <section id="reviews" className="bg-surface px-4 py-16 md:px-10 md:py-24 lg:px-16">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
           <p className="landing-eyebrow mx-auto">For every kind of learner</p>
@@ -55,12 +55,12 @@ export default function Testimonials() {
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {communityCards.map((card) => (
             <article key={card.title} className={`landing-card ${card.tone} p-6`}>
-              <div className="h-40 rounded-lg border border-token bg-white p-4">
-                <div className="h-4 w-2/3 rounded-full bg-[#1d2433]" />
+              <div className="h-40 rounded-lg border border-token bg-surface-alt p-4">
+                <div className="h-4 w-2/3 rounded-full bg-token-muted" />
                 <div className="mt-5 grid gap-3">
-                  <div className="h-10 rounded-md bg-[#f7f4ee]" />
-                  <div className="h-10 rounded-md bg-[#f7f4ee]" />
-                  <div className="h-10 rounded-md bg-[#f7f4ee]" />
+                  <div className="h-10 rounded-md bg-app" />
+                  <div className="h-10 rounded-md bg-app" />
+                  <div className="h-10 rounded-md bg-app" />
                 </div>
               </div>
               <h3 className="mt-6 text-2xl font-extrabold tracking-tight text-main">{card.title}</h3>
@@ -77,7 +77,7 @@ export default function Testimonials() {
 
           <div className="grid gap-3 w-full max-w-2xl">
             {faqs.map((faq) => (
-              <details key={faq.question} className="landing-card group bg-white px-5 py-4">
+              <details key={faq.question} className="landing-card group bg-surface px-5 py-4">
                 <summary className="cursor-pointer list-none text-base font-bold text-main">
                   <span className="flex items-center justify-between gap-4">
                     {faq.question}
@@ -90,7 +90,7 @@ export default function Testimonials() {
           </div>
         </div>
 
-        <div className="landing-card mt-16 bg-[#1d2433] p-6 text-center text-white md:p-10">
+        <div className="landing-card mt-16 bg-surface-alt p-6 text-center text-main md:p-10">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#fff0a8]">Academee</p>
           <h3 className="mx-auto mt-4 max-w-2xl text-4xl font-extrabold leading-tight tracking-tight md:text-6xl">
             Create a learning space that fits you.
@@ -100,7 +100,7 @@ export default function Testimonials() {
               Create account
               <ArrowForward fontSize="small" />
             </Link>
-            <Link to="/login" className="landing-pill border-white bg-transparent text-white min-w-36">
+            <Link to="/login" className="landing-pill border-token bg-surface text-main min-w-36">
               Log in
             </Link>
           </div>

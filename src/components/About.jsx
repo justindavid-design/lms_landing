@@ -21,7 +21,7 @@ const rows = [
 
 export default function About() {
   return (
-    <section id="accessibility" className="bg-[#fffdfa] px-4 py-16 md:px-10 md:py-24 lg:px-16">
+    <section id="accessibility" className="bg-app px-4 py-16 md:px-10 md:py-24 lg:px-16">
       <Container maxWidth="lg" className="!px-0">
         <div className="grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:items-start">
           <div>
@@ -34,12 +34,12 @@ export default function About() {
 
           <div className="grid gap-4">
             {rows.map((row, index) => (
-              <article key={row.title} className="landing-card grid gap-4 bg-white p-5 sm:grid-cols-[1fr_auto] sm:items-center">
+              <article key={row.title} className="landing-card grid gap-4 bg-surface p-5 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <h3 className="text-xl font-extrabold tracking-tight text-main">{row.title}</h3>
                   <p className="mt-2 text-sm font-medium leading-7 text-muted">{row.body}</p>
                 </div>
-                <div className={`rounded-lg border border-token px-4 py-3 text-center text-lg font-extrabold text-main ${index === 0 ? 'bg-[#fff0a8]' : index === 1 ? 'bg-[#dfeaff]' : 'bg-[#e8f3de]'}`}>
+                <div className={`rounded-lg border border-token px-4 py-3 text-center text-lg font-extrabold text-main ${index === 0 ? 'bg-[#fff0a8] dark:bg-surface-alt' : index === 1 ? 'bg-[#dfeaff] dark:bg-surface-alt' : 'bg-[#e8f3de] dark:bg-surface-alt'}`}>
                   {row.value}
                 </div>
               </article>

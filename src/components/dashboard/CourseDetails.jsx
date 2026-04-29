@@ -4,12 +4,19 @@ import Loading from '../Loading'
 import PageHeader from '../PageHeader'
 import CourseTabs from '../CourseTabs'
 import HeaderStats from './HeaderStats'
+import StudentProgress from './StudentProgress'
+import TeacherStudentProgress from './TeacherStudentProgress'
 import { useAuth } from '../../lib/AuthProvider'
 import { useCourseName } from '../../lib/CourseNameContext'
 import { getApiErrorMessage, safeJson } from '../courses/utils'
 import QuizComposer, { createEmptyQuizDraft } from '../quizzes/QuizComposer'
 import QuizAttemptCard from '../quizzes/QuizAttemptCard'
 import { normalizeQuizQuestions } from '../quizzes/quizUtils'
+import ConfirmDialog from './ConfirmDialog'
+import EditModuleModal from './EditModuleModal'
+import EditAssignmentModal from './EditAssignmentModal'
+import EditQuizModal from './EditQuizModal'
+import { Edit, Delete } from '@mui/icons-material'
 
 const emptyModule = { title: '', description: '' }
 const emptyAssignment = { title: '', instructions: '', due_at: '', module_id: '', status: 'published' }
@@ -62,6 +69,19 @@ export default function CourseDetails() {
   const [assignmentForm, setAssignmentForm] = useState(emptyAssignment)
   const [quizForm, setQuizForm] = useState(createEmptyQuizDraft())
   const [announcementForm, setAnnouncementForm] = useState(emptyAnnouncement)
+
+  // Edit modal states
+  const [editingModule, setEditingModule] = useState(null)
+  const [editingAssignment, setEditingAssignment] = useState(null)
+  const [editingQuiz, setEditingQuiz] = useState(null)
+  const [editModuleModalOpen, setEditModuleModalOpen] = useState(false)
+  const [editAssignmentModalOpen, setEditAssignmentModalOpen] = useState(false)
+  const [editQuizModalOpen, setEditQuizModalOpen] = useState(false)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+
+  // Delete confirmation states
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: '', item: null })
+  const [isDeleting, setIsDeleting] = useState(false)
 
   async function loadCourseWorkspace() {
     if (!id || !userId) {
@@ -258,6 +278,141 @@ export default function CourseDetails() {
     await Promise.all([loadCourseWorkspace(), loadSubmissions(activityId)])
   }
 
+  // Edit module
+  const updateModule = async (updates) => {
+    setIsSavingEdit(true)
+    try {
+      const res = await fetch(`/api/courses/${id}/modules`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...updates, user_id: userId }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to update module.'))
+      setModules(prev => prev.map(m => m.id === data.id ? data : m))
+      setEditModuleModalOpen(false)
+      setEditingModule(null)
+      setMessage('')
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Failed to update module.')
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
+  // Edit assignment
+  const updateAssignment = async (updates) => {
+    setIsSavingEdit(true)
+    try {
+      const res = await fetch(`/api/courses/${id}/assignments`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...updates, user_id: userId }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to update assignment.'))
+      setAssignments(prev => prev.map(a => a.id === data.id ? data : a))
+      setEditAssignmentModalOpen(false)
+      setEditingAssignment(null)
+      setMessage('')
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Failed to update assignment.')
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
+  // Edit quiz
+  const updateQuiz = async (updates) => {
+    setIsSavingEdit(true)
+    try {
+      const res = await fetch(`/api/courses/${id}/quizzes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...updates, user_id: userId }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to update quiz.'))
+      setQuizzes(prev => prev.map(q => q.id === data.id ? data : q))
+      setEditQuizModalOpen(false)
+      setEditingQuiz(null)
+      setMessage('')
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Failed to update quiz.')
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
+  // Delete module
+  const deleteModule = async (moduleId) => {
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/courses/${id}/modules`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: moduleId, user_id: userId }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to delete module.'))
+      setModules(prev => prev.filter(m => m.id !== moduleId))
+      setDeleteConfirm({ isOpen: false, type: '', item: null })
+      setMessage('')
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Failed to delete module.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // Delete assignment
+  const deleteAssignment = async (assignmentId) => {
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/courses/${id}/assignments`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: assignmentId, user_id: userId }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to delete assignment.'))
+      setAssignments(prev => prev.filter(a => a.id !== assignmentId))
+      setDeleteConfirm({ isOpen: false, type: '', item: null })
+      setMessage('')
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Failed to delete assignment.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // Delete quiz
+  const deleteQuiz = async (quizId, assignmentId) => {
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/courses/${id}/quizzes`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quiz_id: quizId, assignment_id: assignmentId, user_id: userId }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to delete quiz.'))
+      setQuizzes(prev => prev.filter(q => q.id !== quizId))
+      setDeleteConfirm({ isOpen: false, type: '', item: null })
+      setMessage('')
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Failed to delete quiz.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (loading) return <Loading message="Loading class..." />
 
   if (!course) {
@@ -294,7 +449,17 @@ export default function CourseDetails() {
       {/* Message/Error Display */}
       {message ? <div className="rounded-[24px] border border-token bg-[#fff1f1] p-4 text-sm text-red-700 shadow-sm">{message}</div> : null}
 
-      {isTeacher ? (
+      {/* Progress Tab */}
+      {activeTab === 'progress' ? (
+        isTeacher ? (
+          <TeacherStudentProgress courseId={id} />
+        ) : (
+          <StudentProgress courseId={id} />
+        )
+      ) : null}
+
+      {activeTab === 'overview' ? (
+        <>
         <Section title="Teacher actions" description="Choose what you want to add, then fill in just that form.">
           <div className="flex flex-wrap gap-3">
             {[
@@ -347,23 +512,119 @@ export default function CourseDetails() {
       <Section title="Modules" description="Organize lessons and activities in the order learners should follow.">
         <div className="space-y-3">
           {modules.length === 0 ? <EmptyState>No modules yet.</EmptyState> : null}
-          {modules.map((module, index) => <div key={module.id} className="rounded-[24px] border border-token bg-app p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div className="font-semibold text-main">{module.title}</div><Badge tone={index % 2 === 0 ? 'bg-[#dbe8ff]' : 'bg-[#dff4d8]'}>Lesson</Badge></div>{module.description ? <p className="mt-2 text-sm leading-7 text-muted">{module.description}</p> : null}</div>)}
+          {modules.map((module, index) => (
+            <div key={module.id} className="rounded-[24px] border border-token bg-app p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex-1">
+                  <div className="font-semibold text-main">{module.title}</div>
+                  {module.description && <p className="mt-2 text-sm leading-7 text-muted">{module.description}</p>}
+                </div>
+                <div className="flex gap-2">
+                  <Badge tone={index % 2 === 0 ? 'bg-[#dbe8ff]' : 'bg-[#dff4d8]'}>Lesson</Badge>
+                  {isTeacher && (
+                    <>
+                      <button
+                        onClick={() => { setEditingModule(module); setEditModuleModalOpen(true) }}
+                        className="p-2 text-blue-600 hover:text-blue-700 transition-colors"
+                        title="Edit module"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm({ isOpen: true, type: 'module', item: module })}
+                        className="p-2 text-red-600 hover:text-red-700 transition-colors"
+                        title="Delete module"
+                      >
+                        <Delete className="w-5 h-5" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </Section>
 
       <Section title="Assignments" description="Publish work with due dates and collect submissions inside the course.">
         <div className="space-y-4">
           {assignments.length === 0 ? <EmptyState>No assignments yet.</EmptyState> : null}
-          {assignments.map((assignment) => <ActivityCard key={assignment.id} item={assignment} type="assignment" isTeacher={isTeacher} activityId={assignment.id} onLoadSubmissions={loadSubmissions} submissionLists={submissionLists} gradingDrafts={gradingDrafts} setGradingDrafts={setGradingDrafts} onGrade={gradeSubmission} submissionDrafts={submissionDrafts} setSubmissionDrafts={setSubmissionDrafts} onSubmit={submitWork} />)}
+          {assignments.map((assignment) => (
+            <ActivityCard
+              key={assignment.id}
+              item={assignment}
+              type="assignment"
+              isTeacher={isTeacher}
+              activityId={assignment.id}
+              onLoadSubmissions={loadSubmissions}
+              submissionLists={submissionLists}
+              gradingDrafts={gradingDrafts}
+              setGradingDrafts={setGradingDrafts}
+              onGrade={gradeSubmission}
+              submissionDrafts={submissionDrafts}
+              setSubmissionDrafts={setSubmissionDrafts}
+              onSubmit={submitWork}
+              onEdit={(a) => { setEditingAssignment(a); setEditAssignmentModalOpen(true) }}
+              onDelete={(a) => setDeleteConfirm({ isOpen: true, type: 'assignment', item: a })}
+            />
+          ))}
         </div>
       </Section>
 
       <Section title="Quizzes" description="Build, publish, take, and review richer multiple-choice quizzes inside the course workspace.">
         <div className="space-y-4">
           {quizzes.length === 0 ? <EmptyState>No quizzes yet.</EmptyState> : null}
-          {quizzes.map((quiz) => <QuizCard key={quiz.id} quiz={quiz} isTeacher={isTeacher} onLoadSubmissions={loadSubmissions} submissionLists={submissionLists} gradingDrafts={gradingDrafts} setGradingDrafts={setGradingDrafts} onGrade={gradeSubmission} onSubmit={submitWork} />)}
+          {quizzes.map((quiz) => <QuizCard key={quiz.id} quiz={quiz} isTeacher={isTeacher} onLoadSubmissions={loadSubmissions} submissionLists={submissionLists} gradingDrafts={gradingDrafts} setGradingDrafts={setGradingDrafts} onGrade={gradeSubmission} onSubmit={submitWork} onEdit={(q) => { setEditingQuiz(q); setEditQuizModalOpen(true) }} onDelete={(q) => setDeleteConfirm({ isOpen: true, type: 'quiz', item: q })} />)}
         </div>
       </Section>
+
+      {/* Edit Modals */}
+      <EditModuleModal
+        isOpen={editModuleModalOpen}
+        module={editingModule}
+        onSave={updateModule}
+        onCancel={() => { setEditModuleModalOpen(false); setEditingModule(null) }}
+        isLoading={isSavingEdit}
+      />
+
+      <EditAssignmentModal
+        isOpen={editAssignmentModalOpen}
+        assignment={editingAssignment}
+        modules={modules}
+        onSave={updateAssignment}
+        onCancel={() => { setEditAssignmentModalOpen(false); setEditingAssignment(null) }}
+        isLoading={isSavingEdit}
+      />
+
+      <EditQuizModal
+        isOpen={editQuizModalOpen}
+        quiz={editingQuiz}
+        onSave={updateQuiz}
+        onCancel={() => { setEditQuizModalOpen(false); setEditingQuiz(null) }}
+        isLoading={isSavingEdit}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title={`Delete ${deleteConfirm.type}`}
+        message={`Are you sure you want to delete "${deleteConfirm.item?.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        isDangerous={true}
+        onConfirm={() => {
+          if (deleteConfirm.type === 'module') {
+            deleteModule(deleteConfirm.item.id)
+          } else if (deleteConfirm.type === 'assignment') {
+            deleteAssignment(deleteConfirm.item.id)
+          } else if (deleteConfirm.type === 'quiz') {
+            deleteQuiz(deleteConfirm.item.id, deleteConfirm.item.assignment_id)
+          }
+        }}
+        onCancel={() => setDeleteConfirm({ isOpen: false, type: '', item: null })}
+        isLoading={isDeleting}
+      />
+      </>
+      ) : null}
     </div>
   )
 }
@@ -380,14 +641,38 @@ function Composer({ children, onCancel, onSubmit, submitLabel }) {
   )
 }
 
-function ActivityCard({ item, type, isTeacher, activityId, onLoadSubmissions, submissionLists, gradingDrafts, setGradingDrafts, onGrade, submissionDrafts, setSubmissionDrafts, onSubmit }) {
+function ActivityCard({ item, type, isTeacher, activityId, onLoadSubmissions, submissionLists, gradingDrafts, setGradingDrafts, onGrade, submissionDrafts, setSubmissionDrafts, onSubmit, onEdit, onDelete }) {
   const detailText = `${item.module_title ? `${item.module_title} • ` : ''}Due ${formatDateTime(item.due_at)}`
 
   return (
     <div className="rounded-[24px] border border-token bg-app p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><div className="font-semibold text-main">{item.title}</div><div className="mt-1 text-sm text-muted">{detailText}</div></div>
-        <div className="flex flex-wrap items-center gap-2"><Badge tone="bg-[#fffdfa]">{item.status_for_user || item.status}</Badge>{isTeacher ? <Badge tone="bg-[#ffe38a]">{item.pending_review_count || 0} pending</Badge> : null}</div>
+        <div className="flex-1">
+          <div className="font-semibold text-main">{item.title}</div>
+          <div className="mt-1 text-sm text-muted">{detailText}</div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="bg-[#fffdfa]">{item.status_for_user || item.status}</Badge>
+          {isTeacher ? <Badge tone="bg-[#ffe38a]">{item.pending_review_count || 0} pending</Badge> : null}
+          {isTeacher && (
+            <>
+              <button
+                onClick={() => onEdit(item)}
+                className="p-2 text-blue-600 hover:text-blue-700 transition-colors"
+                title="Edit assignment"
+              >
+                <Edit className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => onDelete(item)}
+                className="p-2 text-red-600 hover:text-red-700 transition-colors"
+                title="Delete assignment"
+              >
+                <Delete className="w-5 h-5" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
       {item.instructions ? <p className="mt-3 text-sm leading-7 text-muted">{item.instructions}</p> : null}
 
@@ -406,20 +691,38 @@ function ActivityCard({ item, type, isTeacher, activityId, onLoadSubmissions, su
   )
 }
 
-function QuizCard({ quiz, isTeacher, onLoadSubmissions, submissionLists, gradingDrafts, setGradingDrafts, onGrade, onSubmit }) {
+function QuizCard({ quiz, isTeacher, onLoadSubmissions, submissionLists, gradingDrafts, setGradingDrafts, onGrade, onSubmit, onEdit, onDelete }) {
   const activityId = quiz.assignment_id || quiz.id
   const questions = normalizeQuizQuestions(quiz?.meta?.questions)
 
   return (
     <div className="rounded-[24px] border border-token bg-app p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="flex-1">
           <div className="font-semibold text-main">{quiz.title}</div>
           <div className="mt-1 text-sm text-muted">{questions.length || quiz.question_count || 0} questions • Due {formatDateTime(quiz.due_at)}</div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="bg-[#fffdfa]">{quiz.status_for_user || quiz.status}</Badge>
           {isTeacher ? <Badge tone="bg-[#ffe38a]">{quiz.pending_review_count || 0} pending</Badge> : null}
+          {isTeacher && (
+            <>
+              <button
+                onClick={() => onEdit(quiz)}
+                className="p-2 text-blue-600 hover:text-blue-700 transition-colors"
+                title="Edit quiz"
+              >
+                <Edit className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => onDelete(quiz)}
+                className="p-2 text-red-600 hover:text-red-700 transition-colors"
+                title="Delete quiz"
+              >
+                <Delete className="w-5 h-5" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 

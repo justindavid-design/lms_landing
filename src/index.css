@@ -4,6 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  * {
+    @apply font-sans;
+  }
+}
+
 /* squircle styles removed */
 
 /* Custom styles to match the design */
@@ -29,8 +35,8 @@
 }
 
 /* Global font */
-body{
-  font-family: Nunito, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+html, body, * {
+  font-family: 'Nunito', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .hero-gradient{
@@ -157,11 +163,11 @@ body{
   }
 
   .landing-pill-secondary {
-    @apply bg-white text-main;
+    @apply bg-surface text-main;
   }
 
   .landing-eyebrow {
-    @apply inline-flex w-fit rounded-md border border-token bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-main;
+    @apply inline-flex w-fit rounded-md border border-token bg-surface px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-main;
   }
 
   .landing-title {

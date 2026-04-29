@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import Loading from '../Loading'
 import { useAuth } from '../../lib/AuthProvider'
 
-function Sparkline({ data = [], width = 300, height = 80, stroke = '#3b82f6' }) {
+function Sparkline({ data = [], width = 300, height = 80, stroke = 'currentColor' }) {
   if (!data || data.length === 0) return null
   const max = Math.max(...data)
   const min = Math.min(...data)
@@ -16,7 +16,7 @@ function Sparkline({ data = [], width = 300, height = 80, stroke = '#3b82f6' }) 
     .join(' ')
 
   return (
-    <svg width={width} height={height} className="block max-w-full" aria-hidden="true">
+    <svg width={width} height={height} className="block max-w-full text-main" aria-hidden="true">
       <polyline
         fill="none"
         stroke={stroke}
@@ -117,7 +117,7 @@ export default function StatsChart() {
       </div>
 
       <div className="overflow-hidden rounded-lg border border-token bg-app px-3 py-4">
-        <Sparkline data={series} width={260} height={70} stroke="#111827" />
+        <Sparkline data={series} width={260} height={70} />
       </div>
     </div>
   )

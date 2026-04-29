@@ -14,7 +14,7 @@ module.exports = {
           DEFAULT: '#111827',
           muted: '#6b7280'
         },
-        surface: '#ffffff'
+        surface: 'var(--surface-bg)'
       },
       fontFamily: {
         sans: ['Nunito', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial']
