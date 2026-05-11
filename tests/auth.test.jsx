@@ -55,13 +55,13 @@ describe('Auth UI', () => {
     const btn = screen.getByRole('button', { name: /^Log in$/i })
 
     fireEvent.change(email, { target: { value: 'test@example.com' } })
-    fireEvent.change(password, { target: { value: 'password' } })
+    fireEvent.change(password, { target: { value: 'TestPassword123!' } })
     fireEvent.click(btn)
 
     await waitFor(() => {
       expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
         email: 'test@example.com',
-        password: 'password',
+        password: 'TestPassword123!',
       })
     })
   })

@@ -25,13 +25,13 @@
   --neo-green: #e8f3de;
   --neo-ink: #1d2433;
   --neo-paper: #fffdfa;
-  --landing-action: #2f6b3f;
-  --landing-action-hover: #255833;
-  --landing-focus: #1d4ed8;
-  --landing-radius-lg: 8px;
-  --landing-radius-md: 8px;
-  --landing-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --landing-shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --landing-action: #4f46e5;
+  --landing-action-hover: #4338ca;
+  --landing-focus: #4f46e5;
+  --landing-radius-lg: 20px;
+  --landing-radius-md: 16px;
+  --landing-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --landing-shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 /* Global font */
@@ -150,20 +150,28 @@ html, body, * {
   }
 
   .landing-pill {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-token px-5 py-3 text-sm font-bold transition-colors duration-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-token px-5 py-3 text-sm font-bold transition-all duration-200;
   }
 
   .landing-pill-primary {
     @apply text-white;
     background-color: var(--landing-action);
+    box-shadow: 0 14px 24px rgba(79, 70, 229, 0.22);
   }
 
   .landing-pill-primary:hover {
     background-color: var(--landing-action-hover);
+    transform: translateY(-1px);
   }
 
   .landing-pill-secondary {
     @apply bg-surface text-main;
+    box-shadow: var(--landing-shadow-soft);
+  }
+
+  .landing-pill-secondary:hover {
+    background-color: var(--surface-alt);
+    transform: translateY(-1px);
   }
 
   .landing-eyebrow {
@@ -275,6 +283,12 @@ body {
 a:focus-visible,
 button:focus-visible,
 input:focus-visible {
+  outline: 4px solid var(--landing-focus);
+  outline-offset: 4px;
+}
+
+select:focus-visible,
+textarea:focus-visible {
   outline: 4px solid var(--landing-focus);
   outline-offset: 4px;
 }

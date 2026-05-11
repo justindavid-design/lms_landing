@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import Loading from '../Loading'
 import { useAuth } from '../../lib/AuthProvider'
+import { apiFetch } from '../../lib/apiClient'
 
 function Sparkline({ data = [], width = 300, height = 80, stroke = 'currentColor' }) {
   if (!data || data.length === 0) return null
@@ -42,7 +43,7 @@ export default function StatsChart() {
     }
 
     let mounted = true
-    fetch(`/api/stats?user_id=${encodeURIComponent(user.id)}`)
+    apiFetch(`/api/stats?user_id=${encodeURIComponent(user.id)}`)
       .then((res) => res.json())
       .then((data) => {
         if (!mounted) return

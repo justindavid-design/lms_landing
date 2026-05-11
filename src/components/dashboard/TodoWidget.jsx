@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../lib/AuthProvider'
+import { apiFetch } from '../../lib/apiClient'
 import { safeJson } from '../courses/utils'
 
 function labelForStatus(task) {
@@ -33,7 +34,7 @@ export default function TodoWidget(){
 
       setLoading(true)
       try {
-        const res = await fetch(`/api/tasks?user_id=${encodeURIComponent(user.id)}`)
+        const res = await apiFetch(`/api/tasks?user_id=${encodeURIComponent(user.id)}`)
         const data = await safeJson(res)
         if (!res.ok) throw new Error(data?.error || 'Failed to load tasks')
         if (active) setTasks(Array.isArray(data) ? data.slice(0, 6) : [])

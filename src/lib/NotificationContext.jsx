@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useAuth } from './AuthProvider'
+import { apiFetch } from './apiClient'
 import supabase from './supabaseClient'
 
 /**
@@ -25,7 +26,7 @@ export function NotificationProvider({ children }) {
 
     try {
       setLoading(true)
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/notifications?user_id=${encodeURIComponent(user.id)}&limit=50`
       )
       
@@ -118,7 +119,7 @@ export function NotificationProvider({ children }) {
 
   const markAsRead = useCallback(async (notificationId) => {
     try {
-      const res = await fetch('/api/notifications', {
+      const res = await apiFetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: notificationId, read: true }),
@@ -141,7 +142,7 @@ export function NotificationProvider({ children }) {
 
   const markAsUnread = useCallback(async (notificationId) => {
     try {
-      const res = await fetch('/api/notifications', {
+      const res = await apiFetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: notificationId, read: false }),
@@ -164,7 +165,7 @@ export function NotificationProvider({ children }) {
 
   const deleteNotification = useCallback(async (notificationId) => {
     try {
-      const res = await fetch('/api/notifications', {
+      const res = await apiFetch('/api/notifications', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: notificationId }),
@@ -193,7 +194,7 @@ export function NotificationProvider({ children }) {
     try {
       await Promise.all(
         unreadIds.map(id =>
-          fetch('/api/notifications', {
+          apiFetch('/api/notifications', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, read: true }),

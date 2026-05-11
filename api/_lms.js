@@ -23,11 +23,35 @@ function getSupabase() {
 
 function getUserId(req) {
   return (
+    req.authenticatedUserId ||
     req.headers['x-user-id'] ||
     (req.query && req.query.user_id) ||
     (req.body && req.body.user_id) ||
     null
   )
+}
+
+function canUseInsecureUserIdFallback() {
+  return process.env.NODE_ENV !== 'production' && process.env.ALLOW_INSECURE_USER_ID_FALLBACK !== 'false'
+}
+
+async function attachAuthenticatedUser(req, _res, next) {
+  try {
+    const authHeader = req.headers.authorization || ''
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice('Bearer '.length).trim()
+      const { data, error } = await getSupabase().auth.getUser(token)
+      if (error) throw error
+      if (data?.user?.id) {
+        req.authenticatedUserId = data.user.id
+        req.authenticatedUser = data.user
+      }
+    }
+  } catch (err) {
+    console.warn('Bearer token verification failed:', err.message || err)
+  }
+
+  next()
 }
 
 function getQuery(req, key) {
@@ -71,10 +95,10 @@ function respondWithError(res, err) {
 }
 
 function requireUserId(req) {
-  const userId = getUserId(req)
+  const userId = req.authenticatedUserId || (canUseInsecureUserIdFallback() ? getUserId(req) : null)
   if (!userId) {
-    const err = new Error('user_id required')
-    err.status = 400
+    const err = new Error('Authenticated user required')
+    err.status = 401
     throw err
   }
   return userId
@@ -281,6 +305,7 @@ async function createCourseNotifications(courseId, title, body, type = 'general'
 
 module.exports = {
   buildCourseSummary,
+  attachAuthenticatedUser,
   computeSubmissionStatus,
   createCourseNotifications,
   createNotification,

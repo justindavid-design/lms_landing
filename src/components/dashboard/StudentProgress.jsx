@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '../../lib/AuthProvider'
+import { apiFetch } from '../../lib/apiClient'
 import Loading from '../Loading'
 import {
   TaskAlt,
   WarningAmber,
   CheckCircle,
-  Clock,
+  AccessTime,
   TrendingUp,
 } from '@mui/icons-material'
 
@@ -37,7 +38,7 @@ export default function StudentProgress({ courseId, studentId = null }) {
         })
         if (studentId) params.append('student_id', studentId)
 
-        const res = await fetch(`/api/progress?${params.toString()}`)
+        const res = await apiFetch(`/api/progress?${params.toString()}`)
         if (!res.ok) throw new Error('Failed to load progress')
 
         const data = await res.json()
@@ -147,7 +148,7 @@ export default function StudentProgress({ courseId, studentId = null }) {
         {/* Pending Work */}
         <div className="rounded-lg border border-token bg-surface p-4 shadow-sm">
           <div className="flex items-center gap-3 mb-2">
-            <Clock className="w-5 h-5 text-amber-500" />
+            <AccessTime className="w-5 h-5 text-amber-500" />
             <h4 className="font-semibold text-main text-sm">Pending</h4>
           </div>
           <div className="text-3xl font-bold text-main">{progress.pending_assignments}</div>

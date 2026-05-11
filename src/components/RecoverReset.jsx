@@ -9,8 +9,20 @@ function getPasswordChecks(password, confirmPassword) {
       ok: password.length >= 8,
     },
     {
-      label: 'Contains a number',
+      label: 'Contains uppercase letter (A-Z)',
+      ok: /[A-Z]/.test(password),
+    },
+    {
+      label: 'Contains lowercase letter (a-z)',
+      ok: /[a-z]/.test(password),
+    },
+    {
+      label: 'Contains a number (0-9)',
       ok: /\d/.test(password),
+    },
+    {
+      label: 'Contains special character (!@#$%^&*)',
+      ok: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
     },
     {
       label: 'Passwords match',
@@ -35,17 +47,12 @@ export default function RecoverReset() {
     setMsg(null)
 
     if (!email || !resetToken) {
-      setMsg({ type: 'error', text: 'This password reset link is missing or expired. Please check your code again.' })
+      setMsg({ type: 'error', text: 'Recovery session is missing or expired. Please check your code again.' })
       return
     }
 
     if (password.length < 8) {
       setMsg({ type: 'error', text: 'Password must be at least 8 characters.' })
-      return
-    }
-
-    if (!/\d/.test(password)) {
-      setMsg({ type: 'error', text: 'Password must include at least one number.' })
       return
     }
 
@@ -88,7 +95,7 @@ export default function RecoverReset() {
       <form onSubmit={resetPassword} className="space-y-4">
         {!email || !resetToken ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm font-medium leading-7 text-red-700">
-            This password reset link is missing or expired. Go back and enter a new code to continue.
+            Recovery session is missing or expired. Go back and enter a new code to continue.
           </div>
         ) : null}
 

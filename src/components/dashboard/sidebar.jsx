@@ -1,65 +1,77 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom'
+import React from 'react'
+import { NavLink } from 'react-router-dom'
+import {
+  ArchiveOutlined,
+  AssignmentOutlined,
+  CalendarTodayOutlined,
+  DashboardOutlined,
+  LibraryBooksOutlined,
+  QuizOutlined,
+  SettingsOutlined,
+} from '@mui/icons-material'
 import LogoutButton from '../LogoutButton'
+import logoutIcon from '../../assets/lg.png'
 
-function DynamicSvgIcon({ src, active }) {
+const primaryItems = [
+  { to: '/dashboard', label: 'Dashboard', icon: DashboardOutlined },
+  { to: '/courses', label: 'Courses', icon: LibraryBooksOutlined },
+  { to: '/calendar', label: 'Calendar', icon: CalendarTodayOutlined },
+  { to: '/tasks', label: 'Assignments', icon: AssignmentOutlined },
+  { to: '/quiz-maker', label: 'Quiz Maker', icon: QuizOutlined },
+  { to: '/archived', label: 'Archive', icon: ArchiveOutlined },
+]
+
+function SidebarItem({ to, label, icon: Icon }) {
   return (
-    <span
-      aria-hidden="true"
-      className={`inline-block h-5 w-5 ${active ? 'opacity-100' : 'opacity-70'}`}
-      style={{
-        backgroundColor: 'currentColor',
-        WebkitMaskImage: `url(${src})`,
-        maskImage: `url(${src})`,
-        WebkitMaskRepeat: 'no-repeat',
-        maskRepeat: 'no-repeat',
-        WebkitMaskPosition: 'center',
-        maskPosition: 'center',
-        WebkitMaskSize: 'contain',
-        maskSize: 'contain',
-      }}
-    />
+    <NavLink
+      to={to}
+      title={label}
+      aria-label={label}
+      className={({ isActive }) =>
+        `group flex min-h-[48px] items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-bold outline-none transition focus-visible:ring-4 focus-visible:ring-[#1f7a4d]/20 ${
+          isActive
+            ? 'bg-[#e6f6ec] text-[#145c39] shadow-[inset_3px_0_0_#1f7a4d]'
+            : 'text-[#425466] hover:bg-white/80 hover:text-[#145c39]'
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <span className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl transition ${isActive ? 'bg-[#1f7a4d] text-white' : 'bg-white text-[#4d6357] group-hover:bg-[#effaf3]'}`}>
+            <Icon sx={{ fontSize: 20 }} />
+          </span>
+          <span className="truncate">{label}</span>
+        </>
+      )}
+    </NavLink>
   )
 }
 
-const SidebarItem = ({ iconSrc, label, isOpen, to }) => {
-  const location = useLocation();
-  const active = location.pathname === to;
-
-  return (
-    <Link to={to} className={`flex items-center gap-4 cursor-pointer transition-all
-    ${isOpen ? 'px-6' : 'px-0 justify-center'} py-3
-    ${active ? 'bg-surface-alt text-main rounded-r-full mr-2' : 'text-muted hover-surface'}`}>
-      <DynamicSvgIcon src={iconSrc} active={active} />
-      
-      {isOpen && <span className="text-sm font-medium whitespace-nowrap">{label}</span>}
-    </Link>
-  );
-};
-
 export default function Sidebar({ isOpen }) {
   return (
-    // CHANGE: Height is now 100% of the remaining space, no top padding needed for logo
-    <aside className={`${isOpen ? 'w-64' : 'w-20'} bg-sidebar transition-all duration-300 flex flex-col border-r border-token overflow-hidden`}>
-      
-      <nav className="flex-1 overflow-y-auto pt-4">
-        <SidebarItem iconSrc="/src/assets/dash.svg" label="Home" to="/dashboard" isOpen={isOpen} />
-        <SidebarItem iconSrc="/src/assets/cour.svg" label="Courses" to="/courses" isOpen={isOpen} />
-        <SidebarItem iconSrc="/src/assets/cale.svg" label="Calendar" to="/calendar" isOpen={isOpen} />
-        <SidebarItem iconSrc="/src/assets/task.svg" label="To-do" to="/tasks" isOpen={isOpen} />
-        
-        <div className="my-4 border-t border-token mx-4" />
+    <aside
+      className={`${isOpen ? 'w-[280px]' : 'w-0 md:w-[86px]'} flex-shrink-0 overflow-hidden border-r border-white/70 bg-white/72 backdrop-blur-xl transition-all duration-300`}
+      aria-label="Dashboard navigation"
+    >
+      <div className="flex h-full flex-col justify-between px-4 pb-6 pt-5">
+        <div>
+          <div className={`${isOpen ? 'px-3' : 'px-0'} mb-6`}>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#6f7f75]">{isOpen ? 'Workspace' : ''}</p>
+          </div>
+          <nav className="grid gap-1.5">
+            {primaryItems.map((item) => (
+              <SidebarItem key={item.to} {...item} />
+            ))}
+          </nav>
+        </div>
 
-        <SidebarItem iconSrc="/src/assets/arch.svg" label="Saved Courses" to="/archived" isOpen={isOpen} />
-      </nav>
-
-      <div className="pb-8 border-t border-token pt-4">
-        {isOpen && <p className="px-6 text-[10px] uppercase tracking-widest text-subtle font-bold mb-2">Comfort</p>}
-        <SidebarItem iconSrc="/src/assets/sett.svg" label="Settings" to="/settings" isOpen={isOpen} />
-        <div className={`mt-2 ${isOpen ? 'px-2' : 'px-0'}`}>
-          <LogoutButton isOpen={isOpen} />
+        <div className="grid gap-1.5 rounded-3xl border border-white/80 bg-white/64 p-2 shadow-[0_20px_50px_rgba(31,122,77,0.08)]">
+          <SidebarItem to="/settings" label="Settings" icon={SettingsOutlined} />
+          <div className="[&_button]:flex [&_button]:min-h-[48px] [&_button]:w-full [&_button]:items-center [&_button]:gap-3 [&_button]:rounded-2xl [&_button]:px-3.5 [&_button]:py-3 [&_button]:text-sm [&_button]:font-bold [&_button]:text-[#425466] [&_button]:transition [&_button]:hover:bg-white [&_button]:hover:text-[#145c39]">
+            <LogoutButton isOpen={isOpen} imageSrc={logoutIcon} />
+          </div>
         </div>
       </div>
     </aside>
-  );
+  )
 }

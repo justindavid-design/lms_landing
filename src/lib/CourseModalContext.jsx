@@ -7,12 +7,15 @@ export function CourseModalProvider({ children }) {
   const [showEnrollForm, setShowEnrollForm] = useState(false)
   const [editingCourse, setEditingCourse] = useState(null)
 
-  const openCreate = useCallback(() => {
-    setEditingCourse(null)
+  const openCreate = useCallback((course = null) => {
+    setEditingCourse(course)
+    setShowEnrollForm(false)
     setShowCreateForm(true)
   }, [])
 
   const openEnroll = useCallback(() => {
+    setShowCreateForm(false)
+    setEditingCourse(null)
     setShowEnrollForm(true)
   }, [])
 

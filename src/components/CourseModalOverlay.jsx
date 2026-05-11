@@ -1,9 +1,11 @@
-import React, { useState, useCallback } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CourseForm from './courses/CourseForm'
+import EnrollForm from './courses/EnrollForm'
 import MessageBanner from './courses/MessageBanner'
 import { useCourseModal } from '../lib/CourseModalContext'
 import { useAuth } from '../lib/AuthProvider'
+import { apiFetch } from '../lib/apiClient'
 import { getApiErrorMessage, generateCourseCode, safeJson } from './courses/utils'
 
 export default function CourseModalOverlay() {
@@ -18,14 +20,22 @@ export default function CourseModalOverlay() {
   } = useCourseModal()
 
   const [courseMsg, setCourseMsg] = useState('')
-  const [courses, setCourses] = useState([])
+  const [enrollCode, setEnrollCode] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const clearMessage = () => {
     setCourseMsg('')
   }
 
+  useEffect(() => {
+    if (showCreateForm || showEnrollForm) {
+      setCourseMsg('')
+    }
+  }, [showCreateForm, showEnrollForm])
+
   const handleCreateOrUpdate = async (payload) => {
     try {
+      setSaving(true)
       if (!user?.id) {
         setCourseMsg('You need to be logged in to create a course.')
         return
@@ -34,7 +44,7 @@ export default function CourseModalOverlay() {
       clearMessage()
 
       if (payload.id) {
-        const res = await fetch(`/api/courses/${payload.id}`, {
+        const res = await apiFetch(`/api/courses/${payload.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...payload, user_id: user.id }),
@@ -48,17 +58,19 @@ export default function CourseModalOverlay() {
         }
 
         setCourseMsg('Course updated.')
+        window.dispatchEvent(new CustomEvent('academee:courses-updated'))
         closeCreate()
         return
       }
 
       const createPayload = {
         ...payload,
+        user_id: user.id,
         author: user.id,
         author_name: profileName || user.user_metadata?.full_name || user.email,
       }
 
-      const res = await fetch('/api/courses', {
+      const res = await apiFetch('/api/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(createPayload),
@@ -68,7 +80,6 @@ export default function CourseModalOverlay() {
 
       if (!res.ok || !data?.id) {
         setCourseMsg(getApiErrorMessage(data, 'We could not finish creating the course. Please try again.'))
-        closeCreate()
         return
       }
 
@@ -76,7 +87,7 @@ export default function CourseModalOverlay() {
         const course_code = generateCourseCode()
 
         try {
-          const patchRes = await fetch(`/api/courses/${data.id}`, {
+          const patchRes = await apiFetch(`/api/courses/${data.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ course_code, user_id: user.id }),
@@ -92,10 +103,62 @@ export default function CourseModalOverlay() {
       }
 
       setCourseMsg(`Course created. Share this code: ${data.course_code || 'code coming soon'}.`)
+      window.dispatchEvent(new CustomEvent('academee:courses-updated'))
       closeCreate()
     } catch (err) {
-      console.error(err)
-      setCourseMsg('Failed to create course. Please try again.')
+      console.error('Course creation error:', err)
+      const errorMsg = err?.message || (typeof err === 'string' ? err : 'Failed to create course. Please try again.')
+      setCourseMsg(errorMsg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleJoinCourse = async () => {
+    const code = enrollCode.trim().toUpperCase()
+
+    if (!code) {
+      setCourseMsg('Enter a course code.')
+      return
+    }
+
+    if (!user?.id) {
+      setCourseMsg('Please log in to join a class.')
+      return
+    }
+
+    try {
+      setSaving(true)
+      clearMessage()
+
+      const res = await apiFetch('/api/courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enroll_code: code, user_id: user.id }),
+      })
+
+      const data = await safeJson(res)
+
+      if (!res.ok) {
+        setCourseMsg(getApiErrorMessage(data, 'We could not find that course code.'))
+        return
+      }
+
+      const enrolledCourse = data?.course
+      setCourseMsg(enrolledCourse ? `You joined ${enrolledCourse.title}.` : 'You joined the class.')
+      setEnrollCode('')
+      window.dispatchEvent(new CustomEvent('academee:courses-updated'))
+
+      setTimeout(() => {
+        closeEnroll()
+        navigate('/courses')
+      }, 700)
+    } catch (err) {
+      console.error('Join course error:', err)
+      const errorMsg = err?.message || 'We could not join the class. Please try again.'
+      setCourseMsg(errorMsg)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -144,18 +207,19 @@ export default function CourseModalOverlay() {
                 initial={editingCourse || {}}
                 onSave={handleCreateOrUpdate}
                 onCancel={closeCreate}
+                saving={saving}
               />
             )}
 
             {showEnrollForm && (
-              <div className="text-center py-4">
-                <p className="text-muted mb-4">Taking you to the join page...</p>
-                {typeof window !== 'undefined' &&
-                  (() => {
-                    setTimeout(() => navigate('/courses/enroll'), 500)
-                    return null
-                  })()}
-              </div>
+              <EnrollForm
+                enrollCode={enrollCode}
+                setEnrollCode={setEnrollCode}
+                enrollMsg=""
+                onJoin={handleJoinCourse}
+                onCancel={closeEnroll}
+                loading={saving}
+              />
             )}
           </div>
         </div>
@@ -163,3 +227,5 @@ export default function CourseModalOverlay() {
     </>
   )
 }
+
+

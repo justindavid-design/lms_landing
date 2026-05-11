@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { CalendarMonth, FormatListBulleted } from '@mui/icons-material'
 import { useAuth } from '../../lib/AuthProvider'
+import { apiFetch } from '../../lib/apiClient'
 import { safeJson } from '../courses/utils'
 
 function groupEvents(events = []) {
@@ -68,7 +69,7 @@ export default function Calendar(){
 
       setLoading(true)
       try {
-        const res = await fetch(`/api/calendar?user_id=${encodeURIComponent(user.id)}`)
+        const res = await apiFetch(`/api/calendar?user_id=${encodeURIComponent(user.id)}`)
         const data = await safeJson(res)
         if (!res.ok) throw new Error(data?.error || 'Failed to load calendar.')
         if (active) setEvents(Array.isArray(data) ? data : [])

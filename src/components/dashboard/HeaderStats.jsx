@@ -9,8 +9,8 @@ export default function HeaderStats({ stats = [] }){
           type="button"
           onClick={s.onClick}
           disabled={!s.onClick}
-          className={`min-w-0 rounded-lg border border-token bg-surface p-4 text-left shadow-sm transition-colors ${
-            s.onClick ? 'cursor-pointer hover-surface' : 'cursor-default'
+          className={`min-w-0 rounded-2xl border border-token bg-surface p-4 text-left shadow-[var(--shadow-card)] transition-all ${
+            s.onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:bg-surface-alt' : 'cursor-default'
           }`}
         >
           <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-subtle">{s.label}</div>

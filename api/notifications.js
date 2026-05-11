@@ -19,9 +19,9 @@ module.exports = async (req, res) => {
       let query = db
         .from('notifications')
         .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(limit)
-        .or(`user_id.eq.${userId},user_id.is.null`)
 
       if (courseId) {
         await ensureCourseAccess(courseId, userId)
@@ -34,16 +34,18 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'POST') {
-      const actorUserId = req.body?.actor_user_id || requireUserId(req)
       const body = req.body || {}
+      const actorUserId = requireUserId(req)
+      const recipientUserId = body.recipient_user_id || body.user_id || null
       if (!body.title) return res.status(400).json({ error: 'title required' })
+      if (!recipientUserId) return res.status(400).json({ error: 'recipient_user_id required' })
 
       if (body.course_id) {
         await ensureCourseAccess(body.course_id, actorUserId, { teacherOnly: true })
       }
 
       const data = await createNotification({
-        user_id: body.recipient_user_id || null,
+        user_id: recipientUserId,
         course_id: body.course_id || null,
         type: body.type || 'general',
         title: body.title,
@@ -62,7 +64,7 @@ module.exports = async (req, res) => {
         .from('notifications')
         .update({ read: typeof body.read === 'boolean' ? body.read : true })
         .eq('id', body.id)
-        .or(`user_id.eq.${userId},user_id.is.null`)
+        .eq('user_id', userId)
         .select()
         .maybeSingle()
 
@@ -80,7 +82,7 @@ module.exports = async (req, res) => {
         .from('notifications')
         .delete()
         .eq('id', body.id)
-        .or(`user_id.eq.${userId},user_id.is.null`)
+        .eq('user_id', userId)
         .select()
         .maybeSingle()
 

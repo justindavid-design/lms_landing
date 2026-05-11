@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import supabase from '../lib/supabaseClient'
 import Loading from './Loading'
 import { useAuth } from '../lib/AuthProvider'
+import { apiFetch } from '../lib/apiClient'
 import { 
   Notifications as NotificationsIcon, 
   TaskAlt, 
@@ -41,7 +42,7 @@ export default function Notifications() {
 
     try {
       setError('')
-      const res = await fetch(`/api/notifications?user_id=${encodeURIComponent(user.id)}&limit=100`)
+      const res = await apiFetch(`/api/notifications?user_id=${encodeURIComponent(user.id)}&limit=100`)
       if (!res.ok) throw new Error('Failed to load notifications')
       
       const data = await res.json()
@@ -102,7 +103,7 @@ export default function Notifications() {
 
   const markAsRead = async (id) => {
     try {
-      const res = await fetch('/api/notifications', {
+      const res = await apiFetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, read: true }),
@@ -118,7 +119,7 @@ export default function Notifications() {
 
   const markAsUnread = async (id) => {
     try {
-      const res = await fetch('/api/notifications', {
+      const res = await apiFetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, read: false }),
@@ -134,7 +135,7 @@ export default function Notifications() {
 
   const deleteNotification = async (id) => {
     try {
-      const res = await fetch('/api/notifications', {
+      const res = await apiFetch('/api/notifications', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -154,7 +155,7 @@ export default function Notifications() {
     try {
       await Promise.all(
         unreadIds.map(id =>
-          fetch('/api/notifications', {
+          apiFetch('/api/notifications', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, read: true }),

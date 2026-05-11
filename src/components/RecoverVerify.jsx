@@ -127,7 +127,7 @@ export default function RecoverVerify() {
         )}
 
         <button type="submit" disabled={loading} className="primary-btn w-full">
-          {loading ? 'Checking...' : 'Check code'}
+          {loading ? 'Checking...' : 'Verify code'}
         </button>
 
         <div className="flex flex-col gap-3">

@@ -3,7 +3,7 @@ const {
   ensureCourseAccess,
   fetchProfilesByIds,
   getSupabase,
-  getUserId,
+  requireUserId,
   respondWithError,
 } = require('./_lms')
 
@@ -12,6 +12,36 @@ function generateCourseCode() {
   let out = ''
   for (let i = 0; i < 6; i += 1) out += chars[Math.floor(Math.random() * chars.length)]
   return out
+}
+
+function slugifyTitle(title = 'course') {
+  const base = String(title || 'course')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return base || `course-${Date.now()}`
+}
+
+function isMissingCourseMetadataError(error) {
+  const message = String(error?.message || '')
+  return (
+    error?.code === '42703' ||
+    error?.code === 'PGRST204' ||
+    message.includes('schema cache')
+  )
+}
+
+function getMissingSchemaColumn(error) {
+  const message = String(error?.message || '')
+  return message.match(/'([^']+)' column/)?.[1] || null
+}
+
+function omitColumn(row, column) {
+  const nextRow = { ...row }
+  delete nextRow[column]
+  return nextRow
 }
 
 async function ensureUniqueCourseCode(db, code) {
@@ -30,6 +60,87 @@ async function ensureUniqueCourseCode(db, code) {
   }
 
   return nextCode
+}
+
+async function ensureUniqueSlug(db, title, currentSlug = null) {
+  const base = slugifyTitle(currentSlug || title)
+  let nextSlug = base
+
+  for (let i = 0; i < 8; i += 1) {
+    const { data, error } = await db
+      .from('courses')
+      .select('id')
+      .eq('slug', nextSlug)
+      .limit(1)
+
+    if (error) throw error
+    if (!data || data.length === 0) return nextSlug
+    nextSlug = `${base}-${i + 2}`
+  }
+
+  return `${base}-${Date.now()}`
+}
+
+async function getCompatibleSlug(db, body) {
+  try {
+    return await ensureUniqueSlug(db, body.title || 'course', body.slug || null)
+  } catch (error) {
+    if (isMissingCourseMetadataError(error)) return null
+    throw error
+  }
+}
+
+async function insertCourseWithCompatibleColumns(db, courseRow) {
+  const optionalColumns = new Set(['slug', 'description', 'section', 'level', 'subject', 'cover_url'])
+  let nextRow = { ...courseRow }
+  let lastError = null
+
+  for (let i = 0; i <= optionalColumns.size; i += 1) {
+    const { data, error } = await db
+      .from('courses')
+      .insert([nextRow])
+      .select()
+      .maybeSingle()
+
+    if (!error) return { data, error: null }
+
+    const missingColumn = getMissingSchemaColumn(error)
+    if (!isMissingCourseMetadataError(error) || !optionalColumns.has(missingColumn) || !(missingColumn in nextRow)) {
+      return { data, error }
+    }
+
+    lastError = error
+    nextRow = omitColumn(nextRow, missingColumn)
+  }
+
+  return { data: null, error: lastError }
+}
+
+async function updateCourseWithCompatibleColumns(db, courseId, updates) {
+  const optionalColumns = new Set(['description', 'section', 'level', 'subject', 'cover_url'])
+  let nextUpdates = { ...updates }
+  let lastError = null
+
+  for (let i = 0; i <= optionalColumns.size; i += 1) {
+    const { data, error } = await db
+      .from('courses')
+      .update(nextUpdates)
+      .eq('id', courseId)
+      .select()
+      .maybeSingle()
+
+    if (!error) return { data, error: null }
+
+    const missingColumn = getMissingSchemaColumn(error)
+    if (!isMissingCourseMetadataError(error) || !optionalColumns.has(missingColumn) || !(missingColumn in nextUpdates)) {
+      return { data, error }
+    }
+
+    lastError = error
+    nextUpdates = omitColumn(nextUpdates, missingColumn)
+  }
+
+  return { data: null, error: lastError }
 }
 
 async function enrichCourses(rows = []) {
@@ -82,11 +193,9 @@ module.exports = async (req, res) => {
   try {
     const db = getSupabase()
     const id = req.params?.id || req.body?.id
-    const userId = getUserId(req)
+    const userId = requireUserId(req)
 
     if (req.method === 'GET') {
-      if (!userId) return res.status(400).json({ error: 'user_id required' })
-
       if (id) {
         const access = await ensureCourseAccess(id, userId)
         const [summary] = await Promise.all([buildCourseSummary(id)])
@@ -125,7 +234,6 @@ module.exports = async (req, res) => {
       const body = req.body || {}
 
       if (body.enroll_code) {
-        if (!body.user_id) return res.status(400).json({ error: 'user_id required for enrollment' })
         const code = String(body.enroll_code).trim().toUpperCase()
         const { data: foundCourse, error: courseError } = await db
           .from('courses')
@@ -138,7 +246,7 @@ module.exports = async (req, res) => {
 
         const { error: enrollmentError } = await db
           .from('enrollments')
-          .upsert([{ course_id: foundCourse.id, user_id: body.user_id, role: 'student' }], {
+          .upsert([{ course_id: foundCourse.id, user_id: userId, role: 'student' }], {
             onConflict: 'course_id,user_id',
           })
 
@@ -148,20 +256,13 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true, course: enrichedCourse })
       }
 
-      if (!body.title || !body.slug) {
-        return res.status(400).json({ error: 'title and slug required' })
-      }
-      if (!body.author) {
-        return res.status(400).json({ error: 'author (creator user id) is required' })
-      }
-
       const courseCode = await ensureUniqueCourseCode(db, body.course_code)
       const { error: profileError } = await db
         .from('profiles')
         .upsert(
           [
             {
-              id: body.author,
+              id: userId,
               display_name: body.author_name || null,
               role: 'teacher',
             },
@@ -171,21 +272,22 @@ module.exports = async (req, res) => {
 
       if (profileError) throw profileError
 
-      const { data, error } = await db
-        .from('courses')
-        .insert([
-          {
-            title: body.title,
-            slug: body.slug,
-            description: body.description || null,
-            cover_url: body.cover_url || null,
-            author: body.author,
-            published: !!body.published,
-            course_code: courseCode,
-          },
-        ])
-        .select()
-        .maybeSingle()
+      const slug = await getCompatibleSlug(db, body)
+      const courseRow = {
+        title: body.title ? String(body.title).trim() : null,
+        slug,
+        description: body.description || null,
+        section: body.section || null,
+        level: body.level || null,
+        subject: body.subject || null,
+        cover_url: body.cover_url || null,
+        author: userId,
+        published: !!body.published,
+        course_code: courseCode,
+      }
+      if (!slug) delete courseRow.slug
+
+      const { data, error } = await insertCourseWithCompatibleColumns(db, courseRow)
 
       if (error) throw error
 
@@ -195,12 +297,14 @@ module.exports = async (req, res) => {
 
     if ((req.method === 'PUT' || req.method === 'PATCH') && id) {
       const body = req.body || {}
-      await ensureCourseAccess(id, body.user_id || userId, { teacherOnly: true })
+      await ensureCourseAccess(id, userId, { teacherOnly: true })
 
       const updates = {
-        title: body.title,
-        slug: body.slug,
+        title: body.title ? String(body.title).trim() : undefined,
         description: body.description,
+        section: body.section,
+        level: body.level,
+        subject: body.subject,
         cover_url: body.cover_url,
         course_code: body.course_code,
         published: typeof body.published === 'boolean' ? body.published : undefined,
@@ -208,12 +312,7 @@ module.exports = async (req, res) => {
 
       Object.keys(updates).forEach((key) => updates[key] === undefined && delete updates[key])
 
-      const { data, error } = await db
-        .from('courses')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .maybeSingle()
+      const { data, error } = await updateCourseWithCompatibleColumns(db, id, updates)
 
       if (error) throw error
 

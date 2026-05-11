@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../lib/AuthProvider'
+import { apiFetch } from '../../lib/apiClient'
 import Loading from '../Loading'
 import StudentProgress from './StudentProgress'
 
@@ -26,7 +27,7 @@ export default function TeacherStudentProgress({ courseId }) {
       setError('')
 
       try {
-        const res = await fetch(`/api/courses/${courseId}/students?user_id=${encodeURIComponent(user.id)}`)
+        const res = await apiFetch(`/api/courses/${courseId}/students?user_id=${encodeURIComponent(user.id)}`)
         if (!res.ok) {
           // If students endpoint doesn't exist, try getting enrollments another way
           throw new Error('Failed to load students')

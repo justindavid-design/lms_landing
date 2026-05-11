@@ -199,7 +199,7 @@ export const fetchNotifications = async (userId, options = {}) => {
     if (options.limit) params.append('limit', options.limit)
     if (options.courseId) params.append('course_id', options.courseId)
 
-    const res = await fetch(`/api/notifications?${params.toString()}`)
+    const res = await apiFetch(`/api/notifications?${params.toString()}`)
     if (!res.ok) throw new Error('Failed to fetch notifications')
 
     const data = await res.json()
@@ -215,7 +215,7 @@ export const fetchNotifications = async (userId, options = {}) => {
  */
 export const markNotificationAsRead = async (notificationId) => {
   try {
-    const res = await fetch('/api/notifications', {
+    const res = await apiFetch('/api/notifications', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: notificationId, read: true }),
@@ -234,7 +234,7 @@ export const markNotificationAsRead = async (notificationId) => {
  */
 export const markNotificationAsUnread = async (notificationId) => {
   try {
-    const res = await fetch('/api/notifications', {
+    const res = await apiFetch('/api/notifications', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: notificationId, read: false }),
@@ -253,7 +253,7 @@ export const markNotificationAsUnread = async (notificationId) => {
  */
 export const deleteNotification = async (notificationId) => {
   try {
-    const res = await fetch('/api/notifications', {
+    const res = await apiFetch('/api/notifications', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: notificationId }),
@@ -272,7 +272,7 @@ export const deleteNotification = async (notificationId) => {
  */
 export const createNotification = async (payload) => {
   try {
-    const res = await fetch('/api/notifications', {
+    const res = await apiFetch('/api/notifications', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -285,3 +285,4 @@ export const createNotification = async (payload) => {
     throw err
   }
 }
+import { apiFetch } from '../../lib/apiClient'

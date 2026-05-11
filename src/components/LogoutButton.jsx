@@ -22,7 +22,7 @@ function DynamicSvgIcon({ src, className = '' }) {
   )
 }
 
-export default function LogoutButton({ isOpen = true }){
+export default function LogoutButton({ isOpen = true, imageSrc = '' }){
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const handleLogout = async () => {
@@ -45,7 +45,11 @@ export default function LogoutButton({ isOpen = true }){
         isOpen ? 'px-4' : 'px-6 justify-center'
       } py-3`}
     >
-      <DynamicSvgIcon src="/src/assets/logout.svg" className="opacity-70" />
+      {imageSrc ? (
+        <img src={imageSrc} alt="" aria-hidden="true" className="h-5 w-5 object-contain" />
+      ) : (
+        <DynamicSvgIcon src="/src/assets/logout.svg" className="opacity-70" />
+      )}
       {isOpen && (
         <span className="text-sm font-medium">{loading ? 'Signing out...' : 'Sign out'}</span>
       )}

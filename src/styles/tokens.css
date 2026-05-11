@@ -1,13 +1,19 @@
 :root {
-  --app-bg: #f7f4ee;
-  --sidebar-bg: #fffdfa;
-  --header-bg: #fffdfa;
+  --app-bg: #f5f7fb;
+  --sidebar-bg: #ffffff;
+  --header-bg: rgba(255, 255, 255, 0.88);
   --text-main: #1d2433;
-  --border-color: #243041;
-  --text-muted: #4b5565;
-  --text-subtle: #6b7380;
-  --surface-bg: #fffdfa;
-  --surface-alt: #edf2ff;
+  --border-color: #e4e8f0;
+  --text-muted: #5b6475;
+  --text-subtle: #8791a3;
+  --surface-bg: #ffffff;
+  --surface-alt: #f0f4ff;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-soft: #eef2ff;
+  --ring: rgba(79, 70, 229, 0.22);
+  --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 .dark {
@@ -132,4 +138,19 @@ body,
 
 .bg-token-muted {
   background-color: var(--border-color);
+}
+
+.bg-primary-token {
+  background-color: var(--primary);
+}
+
+.text-primary-token {
+  color: var(--primary);
+}
+
+.soft-card {
+  border: 1px solid var(--border-color);
+  background: var(--surface-bg);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-card);
 }

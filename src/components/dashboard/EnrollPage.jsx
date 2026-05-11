@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import EnrollForm from '../courses/EnrollForm'
 import MessageBanner from '../courses/MessageBanner'
 import { useAuth } from '../../lib/AuthProvider'
+import { apiFetch } from '../../lib/apiClient'
 import { getApiErrorMessage, safeJson } from '../courses/utils'
 
 export default function EnrollPage() {
@@ -34,7 +35,7 @@ export default function EnrollPage() {
       setLoading(true)
       clearMessage()
 
-      const res = await fetch('/api/courses', {
+      const res = await apiFetch('/api/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enroll_code: code, user_id: user.id }),

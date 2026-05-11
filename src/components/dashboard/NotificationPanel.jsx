@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Notifications, Close, TaskAlt, WarningAmber, Info } from '@mui/icons-material'
 import { useAuth } from '../../lib/AuthProvider'
+import { apiFetch } from '../../lib/apiClient'
 
 /**
  * NotificationPanel - Dropdown notification center in the dashboard header
@@ -25,7 +26,7 @@ export default function NotificationPanel() {
     
     try {
       setLoading(true)
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/notifications?user_id=${encodeURIComponent(user.id)}&limit=20`
       )
       if (!res.ok) throw new Error('Failed to fetch notifications')
@@ -76,7 +77,7 @@ export default function NotificationPanel() {
     e.stopPropagation()
     
     try {
-      const res = await fetch('/api/notifications', {
+      const res = await apiFetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: notificationId, read: true }),
@@ -104,7 +105,7 @@ export default function NotificationPanel() {
       
       await Promise.all(
         unreadIds.map(id =>
-          fetch('/api/notifications', {
+          apiFetch('/api/notifications', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, read: true }),
@@ -123,7 +124,7 @@ export default function NotificationPanel() {
     e.stopPropagation()
     
     try {
-      const res = await fetch('/api/notifications', {
+      const res = await apiFetch('/api/notifications', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: notificationId }),

@@ -16,12 +16,15 @@ const submissions = require(path.resolve(__dirname, 'api', 'submissions'))
 const tasks = require(path.resolve(__dirname, 'api', 'tasks'))
 const calendar = require(path.resolve(__dirname, 'api', 'calendar'))
 const progress = require(path.resolve(__dirname, 'api', 'progress'))
+const register = require(path.resolve(__dirname, 'api', 'register'))
+const { attachAuthenticatedUser } = require(path.resolve(__dirname, 'api', '_lms'))
 
 const app = express()
 const PORT = process.env.API_PORT || 8787
 const HOST = process.env.API_HOST || '0.0.0.0'
 
 app.use(express.json())
+app.use('/api', attachAuthenticatedUser)
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', service: 'lms-api' })
@@ -194,6 +197,62 @@ app.all('/api/profiles/:id', async (req, res) => {
     console.error(err)
     res.status(500).json({ error: err.message || String(err) })
   }
+})
+
+// ============ Google OAuth Authentication ============
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    await register(req, res)
+  } catch (err) {
+    console.error('Register error:', err)
+    res.status(500).json({ error: err.message || 'Registration failed' })
+  }
+})
+
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const googleAuth = require(path.resolve(__dirname, 'api', 'google-auth'))
+    await googleAuth(req, res)
+  } catch (err) {
+    console.error('Google auth error:', err)
+    const missingDependency = err.code === 'MODULE_NOT_FOUND'
+    res.status(missingDependency ? 503 : 500).json({
+      error: missingDependency ? 'Google authentication dependencies are not installed' : (err.message || 'Authentication failed'),
+    })
+  }
+})
+
+// Refresh JWT token
+app.post('/api/auth/refresh', (req, res) => {
+  try {
+    const authMiddleware = require(path.resolve(__dirname, 'api', 'auth-middleware'))
+    authMiddleware.refreshToken(req, res)
+  } catch (err) {
+    console.error('Token refresh error:', err)
+    const missingDependency = err.code === 'MODULE_NOT_FOUND'
+    res.status(missingDependency ? 503 : 500).json({
+      error: missingDependency ? 'JWT dependencies are not installed' : 'Token refresh failed',
+    })
+  }
+})
+
+// Protected route example - verify auth token
+app.get('/api/auth/verify', (req, res, next) => {
+  try {
+    const authMiddleware = require(path.resolve(__dirname, 'api', 'auth-middleware'))
+    return authMiddleware.verifyAuthToken(req, res, next)
+  } catch (err) {
+    console.error('Token verify error:', err)
+    const missingDependency = err.code === 'MODULE_NOT_FOUND'
+    return res.status(missingDependency ? 503 : 500).json({
+      error: missingDependency ? 'JWT dependencies are not installed' : 'Token verification failed',
+    })
+  }
+}, (req, res) => {
+  return res.status(200).json({
+    success: true,
+    user: req.user,
+  })
 })
 
 app.use('/api/*', (_req, res) => {

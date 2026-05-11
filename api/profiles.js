@@ -1,56 +1,82 @@
-process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
-const { createClient } = require('@supabase/supabase-js');
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const {
+  getQuery,
+  getSupabase,
+  requireUserId,
+  respondWithError,
+} = require('./_lms')
 
 module.exports = async (req, res) => {
   try {
-    const method = req.method;
-    if (method === 'GET') {
-      const id = req.query.id || (req.url && new URL(req.url, 'http://localhost').searchParams.get('id'));
-      if (id) {
-        const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
-        if (error) throw error;
-        return res.status(200).json(data);
+    const db = getSupabase()
+    const userId = requireUserId(req)
+
+    if (req.method === 'GET') {
+      const requestedId = getQuery(req, 'id') || req.params?.id || userId
+      if (String(requestedId) !== String(userId)) {
+        return res.status(403).json({ error: 'You can only read your own profile.' })
       }
-      const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(100);
-      if (error) throw error;
-      return res.status(200).json(data);
+
+      const { data, error } = await db
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (error) throw error
+      return res.status(200).json(data || null)
     }
 
-    if (method === 'POST') {
-      const body = req.body;
-      if (!body || !body.id) return res.status(400).json({ error: 'profile id required (auth user id)' });
+    if (req.method === 'POST') {
+      const body = req.body || {}
+      const { data: existing, error: existingError } = await db
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (existingError) throw existingError
+
       const payload = {
-        id: body.id,
+        id: userId,
         display_name: body.display_name || null,
+        first_name: body.first_name || null,
+        last_name: body.last_name || null,
         avatar_url: body.avatar_url || null,
-        role: body.role || 'student'
-      };
-      const { data, error } = await supabase.from('profiles').upsert(payload, { onConflict: ['id'] }).select();
-      if (error) throw error;
-      return res.status(201).json(data[0]);
+        role: existing?.role || 'student',
+      }
+
+      const { data, error } = await db
+        .from('profiles')
+        .upsert(payload, { onConflict: 'id' })
+        .select()
+        .maybeSingle()
+
+      if (error) throw error
+      return res.status(201).json(data)
     }
 
-    if (method === 'PUT' || method === 'PATCH') {
-      const body = req.body;
-      if (!body || !body.id) return res.status(400).json({ error: 'profile id required' });
-      const updates = {};
-      if ('display_name' in body) updates.display_name = body.display_name;
-      if ('avatar_url' in body) updates.avatar_url = body.avatar_url;
-      if ('role' in body) updates.role = body.role;
-      const { data, error } = await supabase.from('profiles').update(updates).eq('id', body.id).select();
-      if (error) throw error;
-      return res.status(200).json(data[0]);
+    if (req.method === 'PUT' || req.method === 'PATCH') {
+      const body = req.body || {}
+      const updates = {}
+      if ('display_name' in body) updates.display_name = body.display_name
+      if ('first_name' in body) updates.first_name = body.first_name
+      if ('last_name' in body) updates.last_name = body.last_name
+      if ('avatar_url' in body) updates.avatar_url = body.avatar_url
+
+      const { data, error } = await db
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId)
+        .select()
+        .maybeSingle()
+
+      if (error) throw error
+      return res.status(200).json(data)
     }
 
-    res.setHeader('Allow', 'GET, POST, PUT, PATCH');
-    return res.status(405).end('Method Not Allowed');
+    res.setHeader('Allow', 'GET, POST, PUT, PATCH')
+    return res.status(405).end('Method Not Allowed')
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: err.message || String(err) });
+    return respondWithError(res, err)
   }
-};
+}

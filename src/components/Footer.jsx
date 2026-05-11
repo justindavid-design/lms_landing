@@ -4,8 +4,8 @@ import { Mail, Phone } from '@mui/icons-material'
 import logo from '../assets/logo_f.png'
 
 const sectionLinks = [
-  { label: 'Easy to read', href: '#proof' },
-  { label: 'How it works', href: '#how-it-works' },
+  { label: 'WCAG support', href: '#proof' },
+  { label: 'Learning flow', href: '#how-it-works' },
   { label: 'Learning tools', href: '#accessibility' },
   { label: 'FAQ', href: '#reviews' },
 ]

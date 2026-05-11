@@ -4,6 +4,7 @@ import App from './App'
 import './index.css'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
 import { AuthProvider } from './lib/AuthProvider'
+import { AccountProvider } from './lib/AccountContext'
 import useTheme from './lib/useTheme'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
@@ -35,8 +36,10 @@ createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
       <AuthProvider>
-        <ThemeBootstrap />
-        <App />
+        <AccountProvider>
+          <ThemeBootstrap />
+          <App />
+        </AccountProvider>
       </AuthProvider>
     </ThemeProvider>
   </React.StrictMode>

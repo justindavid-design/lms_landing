@@ -15,6 +15,7 @@ function makeNoopClient() {
   return {
     auth: {
       getUser: async () => ({ data: { user: null } }),
+      getSession: async () => ({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       signInWithPassword: noop,
       signUp: noop,

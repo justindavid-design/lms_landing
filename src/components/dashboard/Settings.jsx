@@ -56,7 +56,6 @@ function readStoredPrefs() {
         : ORIGINAL_PRESET
 
     return {
-      highContrast: !!parsed.highContrast,
       largeText: !!parsed.largeText,
       reducedMotion: !!parsed.reducedMotion,
       readableFont: !!parsed.readableFont,
@@ -64,7 +63,6 @@ function readStoredPrefs() {
     }
   } catch (_error) {
     return {
-      highContrast: false,
       largeText: false,
       reducedMotion: false,
       readableFont: false,
@@ -74,7 +72,6 @@ function readStoredPrefs() {
 }
 
 function applyPrefsToDocument(prefs) {
-  document.documentElement.classList.toggle('a11y-high-contrast', !!prefs.highContrast)
   document.documentElement.classList.toggle('a11y-large-text', !!prefs.largeText)
   document.documentElement.classList.toggle('a11y-reduced-motion', !!prefs.reducedMotion)
   document.documentElement.classList.toggle('a11y-readable-font', !!prefs.readableFont)
@@ -91,7 +88,7 @@ function applyPrefsToDocument(prefs) {
 
 function ToggleCard({ title, description, checked, onChange }) {
   return (
-    <label className="flex items-center justify-between gap-4 rounded-xl border border-token bg-surface p-4">
+    <label className="flex items-center justify-between gap-4 rounded-2xl border border-token bg-white p-4 shadow-sm transition hover:bg-slate-50">
       <div>
         <h3 className="font-semibold text-main">{title}</h3>
         <p className="text-sm text-muted mt-1">{description}</p>
@@ -101,7 +98,7 @@ function ToggleCard({ title, description, checked, onChange }) {
         role="switch"
         aria-checked={checked}
         onClick={onChange}
-        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${checked ? 'bg-green-600' : 'bg-gray-400'}`}
+        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${checked ? 'bg-indigo-600' : 'bg-slate-300'}`}
       >
         <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
       </button>
@@ -115,7 +112,7 @@ function ThemePreviewCard({ preset, selected, onSelect }) {
       type="button"
       aria-pressed={selected}
       onClick={onSelect}
-      className={`text-left rounded-xl border p-3 transition-colors ${selected ? 'border-black ring-2 ring-black/20 bg-surface-alt' : 'border-token bg-surface hover-surface'}`}
+      className={`text-left rounded-2xl border p-3 transition-all ${selected ? 'border-indigo-500 bg-indigo-50 ring-4 ring-indigo-500/15' : 'border-token bg-white hover:-translate-y-0.5 hover:bg-slate-50'}`}
     >
       <div
         className="rounded-lg border p-3"
@@ -224,7 +221,6 @@ export default function Settings() {
 
   const resetPrefs = () => {
     const defaults = {
-      highContrast: false,
       largeText: false,
       reducedMotion: false,
       readableFont: false,
@@ -325,23 +321,52 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto pb-10 space-y-6">
+    <div className="mx-auto max-w-5xl pb-10">
+      {saveMessage ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed right-5 top-24 z-[60] rounded-2xl border px-4 py-3 text-sm font-bold shadow-[0_18px_45px_rgba(15,23,42,0.16)] ${
+            saveMessage.toLowerCase().includes('failed') || saveMessage.toLowerCase().includes('empty') || saveMessage.toLowerCase().includes('upload')
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          }`}
+        >
+          {saveMessage}
+        </div>
+      ) : null}
+
+      <div className="mb-6">
+        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-indigo-600">Account module</p>
+        <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-main">Profile settings</h1>
+        <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted">
+          Manage profile details, password, notifications, and reading comfort in one clean workspace.
+        </p>
+      </div>
+
+      <div className="space-y-6">
       {/* Profile Section */}
-      <section className="rounded-2xl border border-token bg-surface p-6">
-        <h3 className="text-lg font-semibold text-main mb-4">Profile Information</h3>
+      <section className="rounded-[1.5rem] border border-token bg-surface p-5 shadow-[var(--shadow-card)] md:p-6">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-extrabold text-main">Profile Information</h3>
+            <p className="mt-1 text-sm font-medium text-muted">Name, email, and avatar shown across your account.</p>
+          </div>
+          <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">{user?.email || 'Signed in'}</span>
+        </div>
         
         <div className="space-y-4">
           {/* Avatar Upload */}
-          <div className="flex items-center gap-4 pb-4 border-b border-token">
+          <div className="flex flex-col gap-4 border-b border-token pb-5 sm:flex-row sm:items-center">
             <div className="flex-shrink-0">
               {profilePicture ? (
                 <img
                   src={profilePicture}
                   alt="Profile"
-                  className="h-24 w-24 rounded-full border-2 border-token object-cover"
+                  className="h-24 w-24 rounded-full border-4 border-indigo-100 object-cover shadow-sm"
                 />
               ) : (
-                <div className="h-24 w-24 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-bold border-2 border-token">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-indigo-100 bg-gradient-to-br from-indigo-500 to-blue-600 text-2xl font-extrabold text-white shadow-sm">
                   {displayName
                     .split(/\s+/)
                     .slice(0, 2)
@@ -358,7 +383,7 @@ export default function Settings() {
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarUpload}
-                  className="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                  className="block w-full text-sm text-muted file:mr-4 file:rounded-2xl file:border-0 file:bg-indigo-600 file:px-4 file:py-2.5 file:text-sm file:font-bold file:text-white hover:file:bg-indigo-700"
                 />
               </label>
               <p className="text-xs text-muted mt-2">PNG, JPG, GIF up to 5MB</p>
@@ -381,7 +406,7 @@ export default function Settings() {
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Your display name"
-              className="w-full rounded-xl border border-token bg-app px-4 py-3 text-main placeholder-muted focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-2xl border border-token bg-white px-4 py-3.5 text-main placeholder-muted shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
             />
           </div>
 
@@ -392,23 +417,24 @@ export default function Settings() {
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell us about yourself (optional)"
               rows="4"
-              className="w-full rounded-xl border border-token bg-app px-4 py-3 text-main placeholder-muted focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full resize-none rounded-2xl border border-token bg-white px-4 py-3.5 text-main placeholder-muted shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
             />
           </div>
 
           <button
             onClick={saveProfile}
             disabled={profileLoading}
-            className="bg-blue-600 text-white px-5 py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-[0_14px_26px_rgba(79,70,229,0.22)] transition hover:-translate-y-0.5 hover:bg-indigo-700 disabled:translate-y-0 disabled:opacity-50"
           >
+            {profileLoading && <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />}
             {profileLoading ? 'Saving...' : 'Save Profile'}
           </button>
         </div>
       </section>
 
       {/* Notification Preferences Section */}
-      <section className="rounded-2xl border border-token bg-surface p-6">
-        <h3 className="text-lg font-semibold text-main mb-4">Notification Preferences</h3>
+      <section className="rounded-[1.5rem] border border-token bg-surface p-5 shadow-[var(--shadow-card)] md:p-6">
+        <h3 className="text-lg font-extrabold text-main mb-4">Notification Preferences</h3>
         
         <div className="space-y-3">
           <ToggleCard
@@ -433,13 +459,13 @@ export default function Settings() {
       </section>
 
       {/* Security Section */}
-      <section className="rounded-2xl border border-token bg-surface p-6">
-        <h3 className="text-lg font-semibold text-main mb-4">Security</h3>
+      <section className="rounded-[1.5rem] border border-token bg-surface p-5 shadow-[var(--shadow-card)] md:p-6">
+        <h3 className="text-lg font-extrabold text-main mb-4">Change password</h3>
         
         {!showPasswordForm ? (
           <button
             onClick={() => setShowPasswordForm(true)}
-            className="bg-gray-600 text-white px-5 py-3 rounded-xl font-medium hover:bg-gray-700"
+            className="rounded-2xl border border-token bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-slate-700"
           >
             Change Password
           </button>
@@ -452,7 +478,7 @@ export default function Settings() {
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Enter your current password"
-                className="w-full rounded-xl border border-token bg-app px-4 py-3 text-main placeholder-muted focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full rounded-2xl border bg-white px-4 py-3.5 text-main placeholder-muted shadow-sm transition focus:outline-none focus:ring-4 ${passwordMsg && !currentPassword ? 'border-red-400 focus:ring-red-500/15' : 'border-token focus:border-indigo-500 focus:ring-indigo-500/15'}`}
               />
             </div>
 
@@ -463,7 +489,7 @@ export default function Settings() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="At least 8 characters"
-                className="w-full rounded-xl border border-token bg-app px-4 py-3 text-main placeholder-muted focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full rounded-2xl border bg-white px-4 py-3.5 text-main placeholder-muted shadow-sm transition focus:outline-none focus:ring-4 ${passwordMsg && newPassword.length > 0 && newPassword.length < 8 ? 'border-red-400 focus:ring-red-500/15' : 'border-token focus:border-indigo-500 focus:ring-indigo-500/15'}`}
               />
             </div>
 
@@ -474,18 +500,19 @@ export default function Settings() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your new password"
-                className="w-full rounded-xl border border-token bg-app px-4 py-3 text-main placeholder-muted focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full rounded-2xl border bg-white px-4 py-3.5 text-main placeholder-muted shadow-sm transition focus:outline-none focus:ring-4 ${passwordMsg && confirmPassword && newPassword !== confirmPassword ? 'border-red-400 focus:ring-red-500/15' : 'border-token focus:border-indigo-500 focus:ring-indigo-500/15'}`}
               />
             </div>
 
-            {passwordMsg && <p className="text-sm text-red-600">{passwordMsg}</p>}
+            {passwordMsg && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{passwordMsg}</p>}
 
             <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={passwordLoading}
-                className="flex-1 bg-blue-600 text-white px-5 py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:opacity-50"
               >
+                {passwordLoading && <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />}
                 {passwordLoading ? 'Changing...' : 'Change Password'}
               </button>
               <button
@@ -497,7 +524,7 @@ export default function Settings() {
                   setConfirmPassword('')
                   setPasswordMsg('')
                 }}
-                className="flex-1 bg-gray-700 text-white px-5 py-3 rounded-xl font-medium hover:bg-gray-600"
+                className="flex-1 rounded-2xl border border-token bg-white px-5 py-3 text-sm font-bold text-main transition hover:bg-slate-50"
               >
                 Cancel
               </button>
@@ -507,16 +534,16 @@ export default function Settings() {
       </section>
 
       {/* Comfort Section */}
-      <section className="rounded-2xl border border-token bg-surface p-6">
+      <section className="rounded-[1.5rem] border border-token bg-surface p-5 shadow-[var(--shadow-card)] md:p-6">
         <div className="flex items-center justify-between gap-4 mb-4">
           <div>
-            <h3 className="text-lg font-semibold">Comfort Settings</h3>
+            <h3 className="text-lg font-extrabold">Comfort Settings</h3>
             <p className="text-sm text-muted">These choices update your pages right away.</p>
           </div>
           <button
             type="button"
             onClick={resetPrefs}
-            className="px-3 py-2 text-sm rounded-md border border-token hover-surface"
+            className="rounded-2xl border border-token px-4 py-2.5 text-sm font-bold hover-surface"
           >
             Reset
           </button>
@@ -539,12 +566,6 @@ export default function Settings() {
 
         <div className="space-y-3 mt-5">
           <ToggleCard
-            title="High contrast"
-            description="Make colors stronger for easier reading."
-            checked={prefs.highContrast}
-            onChange={() => togglePref('highContrast')}
-          />
-          <ToggleCard
             title="Large text"
             description="Make text larger across your pages."
             checked={prefs.largeText}
@@ -564,8 +585,8 @@ export default function Settings() {
           />
         </div>
 
-        {saveMessage ? <p className="text-sm text-green-700 mt-4">{saveMessage}</p> : null}
       </section>
+      </div>
     </div>
   )
 }

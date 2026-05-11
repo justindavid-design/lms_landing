@@ -13,8 +13,8 @@ import {
 import logofull from '../assets/logo_f.png'
 
 const navItems = [
-  { label: 'Easy to read', href: '#proof' },
-  { label: 'How it works', href: '#how-it-works' },
+  { label: 'WCAG support', href: '#proof' },
+  { label: 'Learning flow', href: '#how-it-works' },
   { label: 'Learning tools', href: '#accessibility' },
   { label: 'FAQ', href: '#reviews' },
 ]
@@ -59,7 +59,10 @@ export default function Hero() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link to="/login" className="hidden text-sm font-semibold text-main underline-offset-4 hover:underline sm:inline-flex">
+            <Link
+              to="/login"
+              className="hidden rounded-2xl px-4 py-2 text-sm font-semibold text-main transition hover:bg-surface-alt sm:inline-flex"
+            >
               Log in
             </Link>
             <Link to="/signup" className="landing-pill landing-pill-primary">

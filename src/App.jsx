@@ -21,6 +21,7 @@ import EnrollPage from './components/dashboard/EnrollPage'
 import Settings from './components/dashboard/Settings'
 import Tasks from './components/dashboard/Tasks'
 import Notifications from './components/Notifications'
+import QuizMaker from './components/dashboard/QuizMaker'
 import RequireAuth from './lib/RequireAuth'
 import { CourseContextProvider } from './lib/CourseNameContext'
 import { NotificationProvider } from './lib/NotificationContext'
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="/courses/:id" element={<RequireAuth><Dashboard><CourseDetails /></Dashboard></RequireAuth>} />
             <Route path="/calendar" element={<RequireAuth><Dashboard><Calendar /></Dashboard></RequireAuth>} />
             <Route path="/tasks" element={<RequireAuth><Dashboard><Tasks /></Dashboard></RequireAuth>} />
+            <Route path="/quiz-maker" element={<RequireAuth><Dashboard><QuizMaker /></Dashboard></RequireAuth>} />
             <Route path="/archived" element={<RequireAuth><Dashboard><Archived /></Dashboard></RequireAuth>} />
             <Route path="/settings" element={<RequireAuth><Dashboard><Settings /></Dashboard></RequireAuth>} />
             <Route path="/notifications" element={<RequireAuth><Dashboard><Notifications /></Dashboard></RequireAuth>} />
