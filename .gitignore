@@ -2,6 +2,39 @@ node_modules/
 dist/
 .env
 .env.local
-.env.example
+.env.development
+.env.production
+.env.*.local
 .DS_Store
-.vscode/git
+
+# Temporary files
+tmp_*.html
+tmp_*.jsx
+tmp_*.json
+tmp_quiz_maker/
+tmp_render/
+report_render/
+
+# Log files
+*.log
+*.err
+npm-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+
+# Cache directories
+.cache/
+.parcel-cache/
+.turbo/
+
+# Build and output
+build/
+out/
+
+# Test coverage
+coverage/
+.nyc_output/
