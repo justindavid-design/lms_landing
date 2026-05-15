@@ -308,6 +308,9 @@ module.exports = async (req, res) => {
         cover_url: body.cover_url,
         course_code: body.course_code,
         published: typeof body.published === 'boolean' ? body.published : undefined,
+        grading_scale: body.grading_scale,
+        enrollment_status: body.enrollment_status,
+        visibility: body.visibility,
       }
 
       Object.keys(updates).forEach((key) => updates[key] === undefined && delete updates[key])

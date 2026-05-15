@@ -226,10 +226,15 @@ export function LoginForm({ onClose, isEmbedded = false }) {
   const location = useLocation()
   const form = useFormState({ email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
 
-  // Reset form when component mounts
+  // Load saved email on mount
   React.useEffect(() => {
-    form.reset()
+    const savedEmail = localStorage.getItem('rememberedEmail')
+    if (savedEmail) {
+      form.setFieldValue('email', savedEmail)
+      setRememberMe(true)
+    }
   }, [])
 
   const handleChange = (e) => {
@@ -292,6 +297,13 @@ export function LoginForm({ onClose, isEmbedded = false }) {
         form.setFieldError('submit', errorMsg)
         form.setIsLoading(false)
         return
+      }
+
+      // Handle "Remember me" functionality
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', form.values.email.trim().toLowerCase())
+      } else {
+        localStorage.removeItem('rememberedEmail')
       }
 
       const user = data?.user
@@ -416,6 +428,8 @@ export function LoginForm({ onClose, isEmbedded = false }) {
         <input
           id="remember"
           type="checkbox"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
           className="h-4 w-4 rounded border-token accent-[#2f6b3f]"
           disabled={form.isLoading}
         />

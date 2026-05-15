@@ -10,6 +10,7 @@ const courses = require(path.resolve(__dirname, 'api', 'courses'))
 const courseModules = require(path.resolve(__dirname, 'api', 'course-modules'))
 const courseAssignments = require(path.resolve(__dirname, 'api', 'course-assignments'))
 const courseQuizzes = require(path.resolve(__dirname, 'api', 'course-quizzes'))
+const coursePeople = require(path.resolve(__dirname, 'api', 'course-people'))
 const notifications = require(path.resolve(__dirname, 'api', 'notifications'))
 const profiles = require(path.resolve(__dirname, 'api', 'profiles'))
 const submissions = require(path.resolve(__dirname, 'api', 'submissions'))
@@ -123,6 +124,16 @@ app.all('/api/courses/:id/quizzes', async (req, res) => {
   }
 })
 
+app.all('/api/courses/:id/people', async (req, res) => {
+  try{
+    req.params = req.params || {}
+    await coursePeople(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
 app.all('/api/quizzes', async (req, res) => {
   try{
     await courseQuizzes(req, res)
@@ -163,6 +174,33 @@ app.patch('/api/submissions/:submissionId', async (req, res) => {
 })
 
 app.all('/api/notifications', async (req, res) => {
+  try{
+    await notifications(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.all('/api/notifications/mark-all-read', async (req, res) => {
+  try{
+    await notifications(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.all('/api/notifications/:id/read', async (req, res) => {
+  try{
+    await notifications(req, res)
+  }catch(err){
+    console.error(err)
+    res.status(500).json({ error: err.message || String(err) })
+  }
+})
+
+app.all('/api/notifications/:id', async (req, res) => {
   try{
     await notifications(req, res)
   }catch(err){

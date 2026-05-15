@@ -7,12 +7,16 @@ const TABS = [
   { id: 'grades', label: 'Grades' },
 ]
 
-export default function CourseTabs({ activeTab = 'overview', onChange = () => {} }) {
+export default function CourseTabs({ activeTab = 'overview', onChange = () => {}, isTeacher = false }) {
+  const tabs = isTeacher 
+    ? [...TABS]
+    : TABS.filter(t => t.id !== 'grades' || true) // Show all for consistency
+
   return (
     <div className="border-b border-[#dadce0] bg-white">
       <div className="mx-auto flex max-w-[1280px] items-center justify-between">
         <div className="flex overflow-x-auto">
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = activeTab === tab.id
 
           return (

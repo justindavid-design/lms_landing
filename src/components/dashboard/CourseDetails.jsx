@@ -1,13 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import Loading from '../Loading'
 import CourseTabs from '../CourseTabs'
 import StudentProgress from './StudentProgress'
 import TeacherStudentProgress from './TeacherStudentProgress'
+import Classwork from './Classwork'
+import SimpleClasswork from './SimpleClasswork'
+import SubmissionsPanel from './SubmissionsPanel'
+import NotificationCenter from './NotificationCenter'
+import CourseSettings from './CourseSettings'
+import PeopleList from './PeopleList'
+import { StreamContainer } from '../stream'
 import { useAuth } from '../../lib/AuthProvider'
 import { apiFetch } from '../../lib/apiClient'
 import { useCourseName } from '../../lib/CourseNameContext'
 import { getApiErrorMessage, safeJson } from '../courses/utils'
+import { getRandomColor, copyToClipboard } from './dashboardUtils'
 import QuizComposer, { createEmptyQuizDraft } from '../quizzes/QuizComposer'
 import QuizAttemptCard from '../quizzes/QuizAttemptCard'
 import { normalizeQuizQuestions } from '../quizzes/quizUtils'
@@ -15,6 +23,12 @@ import ConfirmDialog from './ConfirmDialog'
 import EditModuleModal from './EditModuleModal'
 import EditAssignmentModal from './EditAssignmentModal'
 import EditQuizModal from './EditQuizModal'
+import AnnouncementModal from '../modals/AnnouncementModal'
+import ModuleModal from '../modals/ModuleModal'
+import AssignmentModal from '../modals/AssignmentModal'
+import QuizList from '../quiz/QuizList'
+import StudentCourseExperience from '../student/StudentCourseExperience'
+import { useModal } from '../../hooks/useModal'
 import {
   AssignmentOutlined,
   ChangeHistoryOutlined,
@@ -48,8 +62,8 @@ function Section({ title, description, children }) {
   )
 }
 
-function Badge({ children, tone = 'bg-surface' }) {
-  return <span className={`rounded-full border border-token px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-main ${tone}`}>{children}</span>
+function Badge({ children, tone = 'bg-slate-100 text-slate-700 border-slate-300' }) {
+  return <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${tone}`}>{children}</span>
 }
 
 function EmptyState({ children }) {
@@ -58,6 +72,7 @@ function EmptyState({ children }) {
 
 export default function CourseDetails() {
   const { id } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuth()
   const courseNameContext = useCourseName() || {}
   const { setCurrentCourseName = () => {} } = courseNameContext
@@ -75,7 +90,14 @@ export default function CourseDetails() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [activeComposer, setActiveComposer] = useState('')
-  const [activeTab, setActiveTab] = useState('stream')
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'stream')
+  const [studentGrades, setStudentGrades] = useState([])
+  const [loadingGrades, setLoadingGrades] = useState(false)
+  const [notificationCenterOpen, setNotificationCenterOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [selectedAssignmentForGrading, setSelectedAssignmentForGrading] = useState(null)
+  const [headerColor, setHeaderColor] = useState(null)
+  const [copiedCodeFeedback, setCopiedCodeFeedback] = useState(false)
 
   const [moduleForm, setModuleForm] = useState(emptyModule)
   const [assignmentForm, setAssignmentForm] = useState(emptyAssignment)
@@ -94,6 +116,11 @@ export default function CourseDetails() {
   // Delete confirmation states
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: '', item: null })
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // New Modal states for create operations
+  const announcementModal = useModal(false)
+  const moduleModal = useModal(false)
+  const assignmentModal = useModal(false)
 
   async function loadCourseWorkspace() {
     if (!id || !userId) {
@@ -125,6 +152,7 @@ export default function CourseDetails() {
 
       setCourse(courseData)
       setCurrentCourseName(courseData?.title || 'Course Details')
+      setHeaderColor(getRandomColor(courseData?.id))
       setModules(Array.isArray(modulesData) ? modulesData : [])
       setAssignments(Array.isArray(assignmentsData) ? assignmentsData : [])
       setQuizzes(Array.isArray(quizzesData) ? quizzesData : [])
@@ -139,9 +167,102 @@ export default function CourseDetails() {
     }
   }
 
+  async function loadStudentGrades() {
+    if (!id || !userId || isTeacher) {
+      return
+    }
+
+    setLoadingGrades(true)
+    try {
+      // Get all assignments for the course
+      const assignmentsRes = await apiFetch(`/api/courses/${id}/assignments?user_id=${encodeURIComponent(userId)}`)
+      const assignmentsData = await safeJson(assignmentsRes)
+      if (!assignmentsRes.ok) throw new Error('Could not load assignments.')
+
+      const assignmentList = Array.isArray(assignmentsData) ? assignmentsData : []
+      const gradesData = []
+
+      // Fetch submissions for each assignment
+      for (const assignment of assignmentList) {
+        try {
+          const submissionsRes = await apiFetch(`/api/assignments/${assignment.id}/submissions?user_id=${encodeURIComponent(userId)}`)
+          const submissionsData = await safeJson(submissionsRes)
+          const submissions = Array.isArray(submissionsData) ? submissionsData : []
+
+          // Find the user's submission
+          const userSubmission = submissions.find((sub) => String(sub.user_id) === String(userId))
+
+          gradesData.push({
+            id: assignment.id,
+            type: 'assignment',
+            title: assignment.title,
+            instructions: assignment.instructions,
+            dueAt: assignment.due_at,
+            submission: userSubmission || null,
+            createdAt: assignment.created_at,
+          })
+        } catch (err) {
+          console.error(`Failed to load submissions for assignment ${assignment.id}:`, err)
+        }
+      }
+
+      // Get all quizzes for the course
+      const quizzesRes = await apiFetch(`/api/courses/${id}/quizzes?user_id=${encodeURIComponent(userId)}`)
+      const quizzesData = await safeJson(quizzesRes)
+      if (!quizzesRes.ok) throw new Error('Could not load quizzes.')
+
+      const quizList = Array.isArray(quizzesData) ? quizzesData : []
+
+      // Fetch attempts for each quiz
+      for (const quiz of quizList) {
+        try {
+          // Get attempts for this quiz - assuming we have an endpoint for this
+          const attemptsRes = await apiFetch(`/api/quizzes/${quiz.id}/attempts?user_id=${encodeURIComponent(userId)}`)
+          const attemptsData = await safeJson(attemptsRes)
+          const attempts = Array.isArray(attemptsData) ? attemptsData : []
+
+          // Find the user's latest attempt
+          const userAttempt = attempts.find((attempt) => String(attempt.user_id) === String(userId))
+
+          gradesData.push({
+            id: quiz.id,
+            type: 'quiz',
+            title: quiz.title,
+            description: quiz.description,
+            dueAt: quiz.due_at,
+            submission: userAttempt || null,
+            createdAt: quiz.created_at,
+          })
+        } catch (err) {
+          console.error(`Failed to load attempts for quiz ${quiz.id}:`, err)
+        }
+      }
+
+      // Sort by due date descending
+      gradesData.sort((a, b) => {
+        const dateA = new Date(a.dueAt || 0)
+        const dateB = new Date(b.dueAt || 0)
+        return dateB - dateA
+      })
+
+      setStudentGrades(gradesData)
+    } catch (err) {
+      console.error('Failed to load grades:', err)
+      setMessage(err.message || 'Failed to load grades.')
+    } finally {
+      setLoadingGrades(false)
+    }
+  }
+
   useEffect(() => {
     loadCourseWorkspace()
   }, [id, userId])
+
+  useEffect(() => {
+    if (activeTab === 'grades' && !loadingGrades && studentGrades.length === 0) {
+      loadStudentGrades()
+    }
+  }, [activeTab])
 
   const isTeacher = useMemo(
     () => Boolean(course) && (course.viewer_role === 'teacher' || String(course.author) === String(userId)),
@@ -159,7 +280,7 @@ export default function CourseDetails() {
         title: item.title,
         body: item.body,
         timestamp: item.created_at,
-        icon: '📢',
+        iconType: 'announcement',
         color: 'bg-[#fff7e0]',
         data: item,
       })
@@ -173,7 +294,7 @@ export default function CourseDetails() {
         title: item.title,
         description: item.description,
         timestamp: item.created_at,
-        icon: '📚',
+        iconType: 'module',
         color: 'bg-[#dff4d8]',
         data: item,
       })
@@ -188,7 +309,7 @@ export default function CourseDetails() {
         instructions: item.instructions,
         timestamp: item.created_at,
         dueAt: item.due_at,
-        icon: '📝',
+        iconType: 'assignment',
         color: 'bg-[#dbe8ff]',
         data: item,
       })
@@ -203,7 +324,7 @@ export default function CourseDetails() {
         description: item.description,
         timestamp: item.created_at,
         dueAt: item.due_at,
-        icon: '📋',
+        iconType: 'quiz',
         color: 'bg-[#ffe38a]',
         data: item,
       })
@@ -515,275 +636,372 @@ export default function CourseDetails() {
     }
   }
 
+  const deleteAnnouncement = async (announcementId) => {
+    setIsDeleting(true)
+    try {
+      const res = await apiFetch('/api/notifications', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: announcementId, user_id: userId }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to delete announcement.'))
+      setAnnouncements(prev => prev.filter(a => a.id !== announcementId))
+      setDeleteConfirm({ isOpen: false, type: '', item: null })
+      setMessage('')
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Failed to delete announcement.')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // New Modal Handlers
+  const handleCreateAnnouncement = async (formData) => {
+    try {
+      const res = await apiFetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          actor_user_id: userId,
+          user_id: userId,
+          course_id: id,
+          type: 'announcement',
+          title: formData.title,
+          body: formData.body,
+        }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to create announcement.'))
+      announcementModal.closeModal()
+      setMessage('')
+      await loadCourseWorkspace()
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Failed to create announcement.')
+      throw err
+    }
+  }
+
+  const handleCreateModule = async (formData) => {
+    try {
+      const res = await apiFetch(`/api/courses/${id}/modules`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          user_id: userId,
+        }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to create module.'))
+      moduleModal.closeModal()
+      setMessage('')
+      await loadCourseWorkspace()
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Failed to create module.')
+      throw err
+    }
+  }
+
+  const handleCreateAssignment = async (formData) => {
+    try {
+      // Check if formData is FormData or plain object
+      const isFormData = formData instanceof FormData
+      const fields = isFormData ? Object.fromEntries(formData.entries()) : formData
+      const res = await apiFetch(`/api/courses/${id}/assignments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: fields.title,
+          instructions: fields.instructions,
+          due_at: fields.due_at ? new Date(fields.due_at).toISOString() : null,
+          module_id: fields.module_id || null,
+          status: fields.status,
+          points: fields.points,
+          user_id: userId,
+        }),
+      })
+      const data = await safeJson(res)
+      if (!res.ok) throw new Error(getApiErrorMessage(data, 'Failed to create assignment.'))
+      
+      assignmentModal.closeModal()
+      setMessage('')
+      await loadCourseWorkspace()
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Failed to create assignment.')
+      throw err
+    }
+  }
+
   if (loading) return <Loading message="Loading class..." />
 
   if (!course) {
     return (
-      <div className="mx-auto max-w-5xl rounded-[28px] border border-token bg-surface p-6 shadow-sm">
-        <h1 className="text-2xl font-black text-main">Course not found</h1>
-        <p className="mt-2 text-sm text-muted">{message || 'This class could not be loaded.'}</p>
-        <Link to="/courses" className="mt-5 inline-flex rounded-2xl border border-token bg-[#243041] px-4 py-2 text-sm font-semibold text-white">Back to courses</Link>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-md rounded-xl bg-white border border-slate-200 p-8 shadow-sm text-center">
+          <div className="text-5xl mb-4">😕</div>
+          <h1 className="text-2xl font-bold text-slate-900">Course not found</h1>
+          <p className="mt-3 text-slate-600">{message || 'This class could not be loaded.'}</p>
+          <Link to="/courses" className="mt-6 inline-flex rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">← Back to courses</Link>
+        </div>
       </div>
     )
   }
 
+  if (!isTeacher) {
+    return (
+      <StudentCourseExperience
+        course={course}
+        modules={modules}
+        assignments={assignments}
+        quizzes={quizzes}
+        announcements={announcements}
+        message={message}
+        onMessage={setMessage}
+        onSubmitAssignment={(activityId, payload) => submitWork(activityId, payload)}
+      />
+    )
+  }
+
   return (
-    <div className="-mx-4 -my-6 min-h-screen bg-white text-[#202124] md:-mx-8 lg:-mx-10">
-        subtitle={`${course.course_code || 'Code N/A'} • ${course.author_name || 'Unknown teacher'}`}
-      <CourseTabs activeTab={activeTab} onChange={setActiveTab} />
+    <div className="-mx-4 -my-6 min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 text-[#202124] md:-mx-8 lg:-mx-10">
+      <CourseTabs activeTab={activeTab} onChange={setActiveTab} isTeacher={isTeacher} />
 
-      <div className="mx-auto max-w-[800px] px-4 py-[18px]">
-        <div className="overflow-hidden rounded-lg bg-[#3367d6]">
-          <div className="relative min-h-[192px] p-5 text-white sm:p-6">
-            <div className="relative z-10 max-w-[52%]">
-              <h1 className="break-words text-[28px] font-medium leading-tight">{course.title}</h1>
-              <p className="mt-2 break-words text-base font-semibold">{course.description || course.author_name || 'Class stream'}</p>
-            </div>
-            <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[48%] overflow-hidden sm:block">
-              <ClassroomHeroArt />
-            </div>
-            {isTeacher ? (
-              <button type="button" className="absolute right-3 top-3 z-10 inline-flex items-center gap-2 rounded-full bg-white px-4 py-3 text-[12px] font-semibold text-[#1967d2] shadow-[0_1px_4px_rgba(60,64,67,.3)] transition hover:bg-[#f8fafd]">
-                <EditOutlined sx={{ fontSize: 17 }} />
-                Customize
-              </button>
-            ) : null}
-            <InfoOutlined className="absolute bottom-3 right-3 z-10 text-white/90" sx={{ fontSize: 19 }} />
-          </div>
-        </div>
-
-      {/* Message/Error Display */}
-      {message ? <div className="rounded-[24px] border border-token bg-[#fff1f1] p-4 text-sm text-red-700 shadow-sm">{message}</div> : null}
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        {/* Message/Error Display */}
+        {message ? <div className="mb-6 rounded-xl border-l-4 border-red-500 bg-red-50 px-5 py-4 text-sm text-red-700 shadow-sm">{message}</div> : null}
 
       {/* Progress Tab */}
       {activeTab === 'people' ? (
-        isTeacher ? (
-          <TeacherStudentProgress courseId={id} />
-        ) : (
-          <StudentProgress courseId={id} />
-        )
+        <div className="mx-auto max-w-4xl px-4 py-8">
+          <PeopleList courseId={id} />
+        </div>
       ) : null}
 
       {activeTab === 'stream' ? (
-        <>
-          {/* Main Grid Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            
-            {/* Left Sidebar */}
-            <div className="lg:col-span-1 space-y-4">
-              {/* Class Code Card */}
-              {course?.course_code && (
-                <div className="rounded-[24px] border border-token bg-surface p-4">
-                  <h3 className="text-sm font-semibold text-main uppercase">Class code</h3>
-                  <p className="mt-3 text-lg font-bold text-main font-mono">{course.course_code}</p>
-                </div>
-              )}
-              
-              {/* Upcoming Card */}
-              <div className="rounded-[24px] border border-token bg-surface p-4">
-                <h3 className="text-sm font-semibold text-main uppercase">Upcoming</h3>
-                <p className="mt-3 text-sm text-muted">No work due soon</p>
-                <button className="mt-3 text-xs font-semibold text-blue-600 hover:text-blue-700">View all</button>
+        <StreamContainer
+          course={course}
+          modules={modules}
+          assignments={assignments}
+          quizzes={quizzes}
+          announcements={announcements}
+          isTeacher={isTeacher}
+          onAddAnnouncement={() => announcementModal.openModal()}
+          onAddModule={() => moduleModal.openModal()}
+          onAddAssignment={() => assignmentModal.openModal()}
+          onAddQuiz={() => window.location.href = `/dashboard/course/${id}/quiz/types`}
+          onEditItem={(type, item) => {
+            if (type === 'module') { setEditingModule(item); setEditModuleModalOpen(true) }
+            if (type === 'assignment') { setEditingAssignment(item); setEditAssignmentModalOpen(true) }
+            if (type === 'quiz') { setEditingQuiz(item); setEditQuizModalOpen(true) }
+          }}
+          onDeleteItem={(type, item) => setDeleteConfirm({ isOpen: true, type, item })}
+          onViewSubmissions={(assignment) => setSelectedAssignmentForGrading(assignment)}
+          onNavigate={(target) => {
+            if (['stream', 'classwork', 'people', 'grades'].includes(target)) {
+              setActiveTab(target)
+              setSearchParams({ tab: target })
+            }
+          }}
+          onCustomize={() => setSettingsOpen(true)}
+          onShare={() => {
+            if (course.course_code) {
+              const text = `Join my class: ${course.title} (Code: ${course.course_code})`
+              if (navigator.share) {
+                navigator.share({ title: course.title, text })
+              } else {
+                navigator.clipboard.writeText(text)
+                setMessage('Course code copied to clipboard!')
+              }
+            }
+          }}
+        />
+      ) : null}
+
+      {/* Grades Tab */}
+      {activeTab === 'grades' && !isTeacher ? (
+        <div className="mx-auto max-w-4xl px-4 py-8">
+          {loadingGrades ? (
+            <Loading message="Loading your grades..." />
+          ) : studentGrades.length === 0 ? (
+            <div className="rounded-xl bg-white border border-slate-200 p-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17s4.5 10.747 10 10.747c5.5 0 10-4.998 10-10.747S17.5 6.253 12 6.253z" />
+                </svg>
               </div>
+              <h2 className="text-2xl font-bold text-slate-900">No grades yet</h2>
+              <p className="mt-3 text-slate-600">Complete assignments and quizzes to see your grades here</p>
             </div>
-
-            {/* Right Main Content */}
-            <div className="lg:col-span-3 space-y-4">
-              {/* Teacher Action Buttons */}
-              {isTeacher && (
-                <div className="flex flex-wrap gap-3">
-                  {[
-                    { key: 'announcement', label: 'Add announcement', tone: 'bg-[#fff7e0]' },
-                    { key: 'module', label: 'Add module', tone: 'bg-[#dff4d8]' },
-                    { key: 'assignment', label: 'Add assignment', tone: 'bg-[#dbe8ff]' },
-                    { key: 'quiz', label: 'Add quiz', tone: 'bg-[#ffe38a]' },
-                  ].map((item) => (
-                    <button key={item.key} type="button" onClick={() => setActiveComposer((current) => (current === item.key ? '' : item.key))} className={`rounded-2xl border border-token px-4 py-3 text-sm font-semibold text-main shadow-sm transition hover:-translate-y-0.5 ${item.tone} ${activeComposer === item.key ? 'ring-2 ring-[#243041]' : ''}`}>
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Composers */}
-              {activeComposer === 'announcement' ? <Composer onCancel={() => setActiveComposer('')} onSubmit={() => withAction(createAnnouncement, 'Failed to publish announcement.')} submitLabel="Publish announcement">
-                <input className="input-base" placeholder="Announcement title" value={announcementForm.title} onChange={(e) => setAnnouncementForm((c) => ({ ...c, title: e.target.value }))} />
-                <textarea className="input-base min-h-[100px]" placeholder="Share an update with this class" value={announcementForm.body} onChange={(e) => setAnnouncementForm((c) => ({ ...c, body: e.target.value }))} />
-              </Composer> : null}
-
-              {activeComposer === 'module' ? <Composer onCancel={() => setActiveComposer('')} onSubmit={() => withAction(createModule, 'Failed to create module.')} submitLabel="Add module">
-                <div className="grid gap-3 md:grid-cols-[1fr_2fr]">
-                  <input className="input-base" placeholder="Module title" value={moduleForm.title} onChange={(e) => setModuleForm((c) => ({ ...c, title: e.target.value }))} />
-                  <input className="input-base" placeholder="Short description" value={moduleForm.description} onChange={(e) => setModuleForm((c) => ({ ...c, description: e.target.value }))} />
-                </div>
-              </Composer> : null}
-
-              {activeComposer === 'assignment' ? <Composer onCancel={() => setActiveComposer('')} onSubmit={() => withAction(createAssignment, 'Failed to create assignment.')} submitLabel="Add assignment">
-                <input className="input-base" placeholder="Assignment title" value={assignmentForm.title} onChange={(e) => setAssignmentForm((c) => ({ ...c, title: e.target.value }))} />
-                <textarea className="input-base min-h-[100px]" placeholder="Instructions" value={assignmentForm.instructions} onChange={(e) => setAssignmentForm((c) => ({ ...c, instructions: e.target.value }))} />
-                <div className="grid gap-3 md:grid-cols-3">
-                  <select className="input-base" value={assignmentForm.module_id} onChange={(e) => setAssignmentForm((c) => ({ ...c, module_id: e.target.value }))}><option value="">No module</option>{modules.map((module) => <option key={module.id} value={module.id}>{module.title}</option>)}</select>
-                  <input className="input-base" type="datetime-local" value={assignmentForm.due_at} onChange={(e) => setAssignmentForm((c) => ({ ...c, due_at: e.target.value }))} />
-                  <select className="input-base" value={assignmentForm.status} onChange={(e) => setAssignmentForm((c) => ({ ...c, status: e.target.value }))}><option value="published">Publish now</option><option value="draft">Save as draft</option></select>
-                </div>
-              </Composer> : null}
-
-              {activeComposer === 'quiz' ? <Composer onCancel={() => setActiveComposer('')} onSubmit={() => withAction(createQuiz, 'Failed to create quiz.')} submitLabel="Add quiz">
-                <QuizComposer value={quizForm} onChange={setQuizForm} />
-              </Composer> : null}
-
-              {/* Activity Feed */}
-              <div className="rounded-[24px] border border-token bg-surface p-6">
-                {activityFeed.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-lg font-semibold text-muted">No activity yet</p>
-                    <p className="mt-1 text-sm text-muted">When teachers add content, it will appear here</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {activityFeed.map((item) => (
-                      <div key={item.id} className={`rounded-[24px] border border-token ${item.color} p-4`}>
-                        <div className="flex items-start gap-4">
-                          {/* Icon */}
-                          <div className="text-2xl">{item.icon}</div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-main">{item.title}</h3>
-                                <p className="text-xs text-muted mt-1">{formatDateTime(item.timestamp)}</p>
-                                
-                                {item.type === 'announcement' && item.body && (
-                                  <p className="mt-3 text-sm leading-7 text-muted">{item.body}</p>
-                                )}
-                                
-                                {item.type === 'module' && item.description && (
-                                  <p className="mt-3 text-sm leading-7 text-muted">{item.description}</p>
-                                )}
-                                
-                                {item.type === 'assignment' && (
-                                  <>
-                                    {item.instructions && <p className="mt-3 text-sm leading-7 text-muted">{item.instructions}</p>}
-                                    <p className="mt-2 text-xs text-muted">Due: {formatDateTime(item.dueAt)}</p>
-                                    {!isTeacher ? (
-                                      <div className="mt-4 space-y-3">
-                                        <textarea className="input-base min-h-[110px]" placeholder="Write your submission or paste a link" value={submissionDrafts[item.data.id] || ''} onChange={(e) => setSubmissionDrafts((c) => ({ ...c, [item.data.id]: e.target.value }))} />
-                                        <div className="flex justify-end"><button type="button" onClick={() => submitWork(item.data.id)} className="rounded-2xl border border-token bg-[#243041] px-4 py-3 text-sm font-semibold text-white">Submit work</button></div>
-                                      </div>
-                                    ) : null}
-                                    {isTeacher ? (
-                                      <SubmissionPanel
-                                        activityId={item.data.id}
-                                        submissions={submissionLists[item.data.id]}
-                                        loading={loadingSubmissions[item.data.id]}
-                                        gradingDrafts={gradingDrafts}
-                                        onLoad={() => withAction(() => loadSubmissions(item.data.id), 'Failed to load submissions.')}
-                                        onDraftChange={updateGradingDraft}
-                                        onGrade={(submissionId) => withAction(() => gradeSubmission(submissionId, item.data.id), 'Failed to save grade.')}
-                                      />
-                                    ) : null}
-                                  </>
-                                )}
-                                
-                                {item.type === 'quiz' && (
-                                  <>
-                                    {item.description && <p className="mt-3 text-sm leading-7 text-muted">{item.description}</p>}
-                                    <p className="mt-2 text-xs text-muted">Due: {formatDateTime(item.dueAt)}</p>
-                                    {!isTeacher ? (
-                                      <div className="mt-4 space-y-3">
-                                        <textarea className="input-base min-h-[110px]" placeholder="Write your quiz response" />
-                                        <div className="flex justify-end"><button type="button" onClick={() => submitWork(item.data.assignment_id || item.data.id)} className="rounded-2xl border border-token bg-[#243041] px-4 py-3 text-sm font-semibold text-white">Submit quiz</button></div>
-                                      </div>
-                                    ) : null}
-                                    {isTeacher ? (
-                                      <SubmissionPanel
-                                        activityId={item.data.assignment_id || item.data.id}
-                                        submissions={submissionLists[item.data.assignment_id || item.data.id]}
-                                        loading={loadingSubmissions[item.data.assignment_id || item.data.id]}
-                                        gradingDrafts={gradingDrafts}
-                                        onLoad={() => withAction(() => loadSubmissions(item.data.assignment_id || item.data.id), 'Failed to load submissions.')}
-                                        onDraftChange={updateGradingDraft}
-                                        onGrade={(submissionId) => withAction(() => gradeSubmission(submissionId, item.data.assignment_id || item.data.id), 'Failed to save grade.')}
-                                      />
-                                    ) : null}
-                                  </>
-                                )}
-                              </div>
-
-                              {/* Actions */}
-                              {isTeacher && (
-                                <div className="flex gap-1">
-                                  {item.type === 'module' && (
-                                    <>
-                                      <button
-                                        onClick={() => { setEditingModule(item.data); setEditModuleModalOpen(true) }}
-                                        className="p-2 text-blue-600 hover:text-blue-700 transition-colors"
-                                        title="Edit module"
-                                      >
-                                        <Edit className="w-5 h-5" />
-                                      </button>
-                                      <button
-                                        onClick={() => setDeleteConfirm({ isOpen: true, type: 'module', item: item.data })}
-                                        className="p-2 text-red-600 hover:text-red-700 transition-colors"
-                                        title="Delete module"
-                                      >
-                                        <Delete className="w-5 h-5" />
-                                      </button>
-                                    </>
-                                  )}
-                                  
-                                  {item.type === 'assignment' && (
-                                    <>
-                                      <button
-                                        onClick={() => { setEditingAssignment(item.data); setEditAssignmentModalOpen(true) }}
-                                        className="p-2 text-blue-600 hover:text-blue-700 transition-colors"
-                                        title="Edit assignment"
-                                      >
-                                        <Edit className="w-5 h-5" />
-                                      </button>
-                                      <button
-                                        onClick={() => setDeleteConfirm({ isOpen: true, type: 'assignment', item: item.data })}
-                                        className="p-2 text-red-600 hover:text-red-700 transition-colors"
-                                        title="Delete assignment"
-                                      >
-                                        <Delete className="w-5 h-5" />
-                                      </button>
-                                    </>
-                                  )}
-                                  
-                                  {item.type === 'quiz' && (
-                                    <>
-                                      <button
-                                        onClick={() => { setEditingQuiz(item.data); setEditQuizModalOpen(true) }}
-                                        className="p-2 text-blue-600 hover:text-blue-700 transition-colors"
-                                        title="Edit quiz"
-                                      >
-                                        <Edit className="w-5 h-5" />
-                                      </button>
-                                      <button
-                                        onClick={() => setDeleteConfirm({ isOpen: true, type: 'quiz', item: item.data })}
-                                        className="p-2 text-red-600 hover:text-red-700 transition-colors"
-                                        title="Delete quiz"
-                                      >
-                                        <Delete className="w-5 h-5" />
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              )}
-                            </div>
+          ) : (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 mb-6">Your Grades</h2>
+              </div>
+              {studentGrades.map((item) => (
+                <div key={item.id} className="rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                  <div className="p-6">
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{backgroundColor: item.type === 'assignment' ? '#dce8ff' : '#ffe38a'}}>
+                            {item.type === 'assignment' ? (
+                              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              </svg>
+                            )}
                           </div>
+                          <h3 className="text-lg font-bold text-slate-900">{item.title}</h3>
+                        </div>
+                        {item.type === 'assignment' && item.instructions && (
+                          <p className="text-sm text-slate-600 mt-2">{item.instructions}</p>
+                        )}
+                        {item.type === 'quiz' && item.description && (
+                          <p className="text-sm text-slate-600 mt-2">{item.description}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        {item.submission && item.submission.score !== null && item.submission.score !== undefined ? (
+                          <div className="flex flex-col items-end gap-1">
+                            <div className="text-4xl font-bold text-blue-600">{item.submission.score}</div>
+                            <span className="text-xs font-semibold text-slate-600 uppercase">Points</span>
+                          </div>
+                        ) : (
+                          <div className="px-3 py-1.5 bg-yellow-100 border border-yellow-300 rounded-lg text-xs font-semibold text-yellow-700">
+                            Not graded
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-200 pt-4 space-y-3">
+                      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-600 uppercase">Due date</p>
+                          <p className="text-sm text-slate-900 mt-1">{formatDateTime(item.dueAt)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-600 uppercase">Status</p>
+                          {item.submission ? (
+                            item.submission.score !== null && item.submission.score !== undefined ? (
+                              <span className="inline-block mt-1 px-2.5 py-1 bg-green-100 border border-green-300 rounded-lg text-xs font-semibold text-green-700">
+                                Graded
+                              </span>
+                            ) : (
+                              <span className="inline-block mt-1 px-2.5 py-1 bg-blue-100 border border-blue-300 rounded-lg text-xs font-semibold text-blue-700">
+                                Submitted
+                              </span>
+                            )
+                          ) : (
+                            <span className="inline-block mt-1 px-2.5 py-1 bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700">
+                              Not submitted
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-600 uppercase">Submitted</p>
+                          <p className="text-sm text-slate-900 mt-1">
+                            {item.submission && item.submission.submitted_at ? formatDateTime(item.submission.submitted_at) : '-'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-600 uppercase">Late</p>
+                          <p className="text-sm mt-1">
+                            {item.submission && item.submission.submitted_at && item.dueAt ? (
+                              new Date(item.submission.submitted_at) > new Date(item.dueAt) ? (
+                                <span className="text-red-600 font-semibold">Yes</span>
+                              ) : (
+                                <span className="text-green-600 font-semibold">No</span>
+                              )
+                            ) : (
+                              '-'
+                            )}
+                          </p>
                         </div>
                       </div>
-                    ))}
+
+                      {item.submission && item.submission.feedback && (
+                        <div className="mt-4 rounded-lg bg-blue-50 border border-blue-200 p-4">
+                          <p className="text-xs font-bold text-blue-700 uppercase tracking-wide">Teacher feedback</p>
+                          <p className="text-sm text-blue-900 mt-2 whitespace-pre-wrap">{item.submission.feedback}</p>
+                        </div>
+                      )}
+
+                      {item.submission && item.submission.content && (
+                        <div className="mt-4 rounded-lg bg-slate-50 border border-slate-200 p-4">
+                          <p className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Your submission</p>
+                          <p className="text-sm text-slate-700 whitespace-pre-wrap font-mono">{item.submission.content}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              ))}
             </div>
-          </div>
-        </>
+          )}
+        </div>
       ) : null}
+
+      {activeTab === 'grades' && isTeacher ? (
+        <div className="mx-auto max-w-5xl px-4 py-8">
+          <TeacherStudentProgress courseId={id} />
+        </div>
+      ) : null}
+
+      {/* Classwork Tab */}
+      {activeTab === 'classwork' ? (
+        <div className="mx-auto max-w-4xl px-4 py-8">
+          <SimpleClasswork courseId={id} isTeacher={isTeacher} />
+          {selectedAssignmentForGrading && isTeacher && (
+            <div className="mt-8">
+              <SubmissionsPanel 
+                assignment={selectedAssignmentForGrading} 
+                courseId={id}
+                onClose={() => setSelectedAssignmentForGrading(null)}
+              />
+            </div>
+          )}
+        </div>
+      ) : null}
+
+
+
+      {/* Edit Modals */}
+      
+      {/* Create Modals */}
+      <AnnouncementModal
+        isOpen={announcementModal.isOpen}
+        onClose={announcementModal.closeModal}
+        onSubmit={handleCreateAnnouncement}
+        isLoading={false}
+        title="Create Announcement"
+      />
+
+      <ModuleModal
+        isOpen={moduleModal.isOpen}
+        onClose={moduleModal.closeModal}
+        onSubmit={handleCreateModule}
+        isLoading={false}
+        title="Create Module"
+      />
+
+      <AssignmentModal
+        isOpen={assignmentModal.isOpen}
+        onClose={assignmentModal.closeModal}
+        onSubmit={handleCreateAssignment}
+        isLoading={false}
+        title="Create Assignment"
+        modules={modules}
+      />
 
       {/* Edit Modals */}
       <EditModuleModal
@@ -825,23 +1043,55 @@ export default function CourseDetails() {
             deleteAssignment(deleteConfirm.item.id)
           } else if (deleteConfirm.type === 'quiz') {
             deleteQuiz(deleteConfirm.item.id, deleteConfirm.item.assignment_id)
+          } else if (deleteConfirm.type === 'announcement') {
+            deleteAnnouncement(deleteConfirm.item.id)
           }
         }}
         onCancel={() => setDeleteConfirm({ isOpen: false, type: '', item: null })}
         isLoading={isDeleting}
       />
+
+      {selectedAssignmentForGrading && isTeacher && activeTab !== 'classwork' ? (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="mx-auto my-8 max-w-5xl">
+            <SubmissionsPanel
+              assignment={selectedAssignmentForGrading}
+              courseId={id}
+              onClose={() => setSelectedAssignmentForGrading(null)}
+            />
+          </div>
+        </div>
+      ) : null}
       </div>
+
+      {/* Notification Center */}
+      <NotificationCenter 
+        userId={user?.id} 
+        isOpen={notificationCenterOpen} 
+        onClose={() => setNotificationCenterOpen(false)} 
+      />
+
+      {/* Course Settings Modal */}
+      {settingsOpen && (
+        <CourseSettings 
+          course={course}
+          onClose={() => setSettingsOpen(false)}
+          onUpdate={(updatedCourse) => setCourse(updatedCourse)}
+        />
+      )}
     </div>
   )
 }
 
 function Composer({ children, onCancel, onSubmit, submitLabel }) {
   return (
-    <div className="mt-5 grid gap-3 rounded-[24px] border border-token bg-app p-4">
-      {children}
-      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-        <button type="button" onClick={onCancel} className="rounded-2xl border border-token bg-surface px-4 py-3 text-sm font-semibold text-main">Cancel</button>
-        <button type="button" onClick={onSubmit} className="rounded-2xl border border-token bg-[#243041] px-4 py-3 text-sm font-semibold text-white">{submitLabel}</button>
+    <div className="mt-6 rounded-xl bg-white border border-slate-200 p-6 shadow-sm">
+      <div className="space-y-4">
+        {children}
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onCancel} className="rounded-lg border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors">Cancel</button>
+          <button type="button" onClick={onSubmit} className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">{submitLabel}</button>
+        </div>
       </div>
     </div>
   )
@@ -859,57 +1109,57 @@ function SubmissionPanel({
   const hasLoaded = Array.isArray(submissions)
 
   return (
-    <div className="mt-4 rounded-2xl border border-token bg-surface p-4">
+    <div className="mt-4 rounded-lg bg-slate-50 border border-slate-200 p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h4 className="text-sm font-black text-main">Student submissions</h4>
-          <p className="mt-1 text-xs font-semibold text-muted">
-            {hasLoaded ? `${submissions.length} submitted` : 'Load submitted work for this item.'}
+          <h4 className="text-sm font-bold text-slate-900">📋 Student submissions</h4>
+          <p className="mt-0.5 text-xs text-slate-600">
+            {hasLoaded ? `${submissions.length} student${submissions.length !== 1 ? 's' : ''} submitted` : 'Load submitted work for this item.'}
           </p>
         </div>
         <button
           type="button"
           onClick={onLoad}
           disabled={loading}
-          className="rounded-xl border border-token bg-app px-3 py-2 text-xs font-bold text-main disabled:opacity-60"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-60 transition-colors"
         >
           {loading ? 'Loading...' : hasLoaded ? 'Refresh' : 'View submissions'}
         </button>
       </div>
 
       {hasLoaded && submissions.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-token bg-app p-3 text-sm text-muted">
+        <div className="mt-3 rounded-lg bg-white border border-slate-200 p-3 text-sm text-slate-600">
           No submissions yet.
         </div>
       ) : null}
 
       {hasLoaded && submissions.length > 0 ? (
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
           {submissions.map((submission) => {
             const draft = gradingDrafts[submission.id] || {}
             const submittedText = submission.content || submission.attachment_url || 'No written response.'
 
             return (
-              <div key={submission.id} className="rounded-xl border border-token bg-app p-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div key={submission.id} className="rounded-lg bg-white border border-slate-200 p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
                   <div>
-                    <div className="font-black text-main">{submission.student_name || 'Student'}</div>
-                    <div className="mt-1 text-xs font-semibold text-muted">
+                    <div className="font-semibold text-slate-900">{submission.student_name || 'Student'}</div>
+                    <div className="text-xs text-slate-600 mt-0.5">
                       {submission.submitted_at ? `Submitted ${formatDateTime(submission.submitted_at)}` : 'Not submitted'}
                     </div>
                   </div>
-                  <Badge tone={submission.status === 'graded' ? 'bg-[#e6f6ec]' : 'bg-[#fff7e0]'}>
+                  <Badge tone={submission.status === 'graded' ? 'bg-green-100 text-green-700 border-green-300' : 'bg-yellow-100 text-yellow-700 border-yellow-300'}>
                     {submission.status || 'submitted'}
                   </Badge>
                 </div>
 
-                <div className="mt-3 whitespace-pre-wrap rounded-xl border border-token bg-surface p-3 text-sm leading-6 text-main">
+                <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm leading-6 text-slate-700 font-mono whitespace-pre-wrap">
                   {submittedText}
                 </div>
 
-                <div className="mt-3 grid gap-3 md:grid-cols-[140px_1fr_auto]">
+                <div className="mt-3 grid gap-2 md:grid-cols-[120px_1fr_100px]">
                   <input
-                    className="input-base"
+                    className="input-base text-sm"
                     type="number"
                     min="0"
                     placeholder="Score"
@@ -917,17 +1167,17 @@ function SubmissionPanel({
                     onChange={(e) => onDraftChange(submission.id, { score: e.target.value })}
                   />
                   <input
-                    className="input-base"
-                    placeholder="Feedback"
+                    className="input-base text-sm"
+                    placeholder="Add feedback..."
                     value={draft.feedback ?? submission.feedback ?? ''}
                     onChange={(e) => onDraftChange(submission.id, { feedback: e.target.value })}
                   />
                   <button
                     type="button"
                     onClick={() => onGrade(submission.id)}
-                    className="rounded-xl border border-token bg-[#243041] px-4 py-3 text-sm font-semibold text-white"
+                    className="rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700 transition-colors"
                   >
-                    Return grade
+                    Save
                   </button>
                 </div>
               </div>

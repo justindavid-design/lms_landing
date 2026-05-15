@@ -22,6 +22,8 @@ import Settings from './components/dashboard/Settings'
 import Tasks from './components/dashboard/Tasks'
 import Notifications from './components/Notifications'
 import QuizMaker from './components/dashboard/QuizMaker'
+import QuizBuilderPage from './components/quiz/QuizBuilderPage'
+import QuizTypeSelector from './components/quiz/QuizTypeSelector'
 import RequireAuth from './lib/RequireAuth'
 import { CourseContextProvider } from './lib/CourseNameContext'
 import { NotificationProvider } from './lib/NotificationContext'
@@ -73,6 +75,9 @@ export default function App() {
             <Route path="/courses" element={<RequireAuth><Dashboard><Courses /></Dashboard></RequireAuth>} />
             <Route path="/courses/enroll" element={<RequireAuth><Dashboard><EnrollPage /></Dashboard></RequireAuth>} />
             <Route path="/courses/:id" element={<RequireAuth><Dashboard><CourseDetails /></Dashboard></RequireAuth>} />
+            <Route path="/dashboard/course/:courseId/quiz/types" element={<RequireAuth><QuizTypeSelector /></RequireAuth>} />
+            <Route path="/dashboard/course/:courseId/quiz/create" element={<RequireAuth><Dashboard><QuizBuilderPage /></Dashboard></RequireAuth>} />
+            <Route path="/dashboard/course/:courseId/quiz/:quizId/edit" element={<RequireAuth><Dashboard><QuizBuilderPage /></Dashboard></RequireAuth>} />
             <Route path="/calendar" element={<RequireAuth><Dashboard><Calendar /></Dashboard></RequireAuth>} />
             <Route path="/tasks" element={<RequireAuth><Dashboard><Tasks /></Dashboard></RequireAuth>} />
             <Route path="/quiz-maker" element={<RequireAuth><Dashboard><QuizMaker /></Dashboard></RequireAuth>} />

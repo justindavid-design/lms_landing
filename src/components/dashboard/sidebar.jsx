@@ -50,14 +50,11 @@ function SidebarItem({ to, label, icon: Icon }) {
 export default function Sidebar({ isOpen }) {
   return (
     <aside
-      className={`${isOpen ? 'w-[280px]' : 'w-0 md:w-[86px]'} flex-shrink-0 overflow-hidden border-r border-white/70 bg-white/72 backdrop-blur-xl transition-all duration-300`}
+      className={`${isOpen ? 'w-[250px]' : 'w-0 md:w-[86px]'} flex-shrink-0 overflow-hidden border-r border-white/70 bg-white/72 backdrop-blur-xl transition-all duration-300`}
       aria-label="Dashboard navigation"
     >
       <div className="flex h-full flex-col justify-between px-4 pb-6 pt-5">
         <div>
-          <div className={`${isOpen ? 'px-3' : 'px-0'} mb-6`}>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#6f7f75]">{isOpen ? 'Workspace' : ''}</p>
-          </div>
           <nav className="grid gap-1.5">
             {primaryItems.map((item) => (
               <SidebarItem key={item.to} {...item} />

@@ -106,85 +106,56 @@ export default function CourseCard({
   }, [])
 
   return (
-    <div className="w-[280px]">
-      <div className="overflow-hidden rounded-lg border border-token bg-surface shadow-sm transition-shadow hover:shadow-md">
-        <div className="relative h-[135px] overflow-hidden bg-gray-800">
-          <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
+    <div className="w-[240px]">
+      {/* Card shell */}
+      <div className="rounded-[20px] bg-white shadow-sm">
+        
 
-          <img
-            src={imageUrl}
-            alt={course.title || 'Course thumbnail'}
-            className="absolute inset-0 h-full w-full object-cover"
-            loading="lazy"
-          />
+        {/* IMAGE SECTION — padded so all 4 rounded corners are visible */}
+        <div className="relative px-2 pt-2">
 
-          <div className="absolute left-2.5 top-2.5 z-20 flex items-center gap-1.5">
-            {visibleStudents.length > 0 ? (
-              <div className="flex" aria-label={`${learnerCount} enrolled students`}>
-                {visibleStudents.map((student, index) => (
+          {/* Inset rounded image */}
+          <div className="relative h-[150px] overflow-hidden rounded-[12px]">
+            <img
+              src={imageUrl}
+              alt={course.title || 'Course thumbnail'}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+            {/* Subtle dark overlay */}
+            
+            <div className="absolute inset-0 bg-black/10" />
+
+            {/* Student avatars — top left */}
+            <div className="absolute bg-white rounded-full left-3 top-3 flex items-center gap-1">
+              <div className="flex">
+                {visibleStudents.slice(0, 3).map((student, index) => (
                   <StudentAvatar key={student.id || index} student={student} offset={index > 0} />
                 ))}
               </div>
-            ) : null}
-            <div className="rounded-full bg-black/55 px-2 py-0.5" title={`${learnerCount} enrolled student${learnerCount === 1 ? '' : 's'}`}>
-              <span className="text-xs font-medium text-white">{learnerCount}</span>
+              <div className="flex h-5 min-w-[22px] items-center justify-center text-[11px] font-bold text-black shadow-sm">
+                {learnerCount}
+              </div>
             </div>
           </div>
+          
 
-          <button
-            type="button"
-            onClick={openCourse}
-            className="absolute inset-0 z-10"
-            aria-label={`Open ${course.title || 'course'}`}
-          />
-
-          <div className="absolute bottom-4 left-3.5 right-3.5 z-20">
-            <p className="mb-0.5 text-[11px] text-white/80">By: {course.author_name || 'Teacher name'}</p>
-            <h2 className="line-clamp-2 text-[22px] font-bold leading-tight tracking-tight text-white">
-              {course.title || 'Subject name'}
-            </h2>
-          </div>
-        </div>
-
-        <div className="min-h-[150px] border-b border-token px-3.5 pb-4 pt-4">
-          <p className="mb-0.5 text-sm font-bold text-main">{dueText}</p>
-          <p className="text-[13px] text-muted">{activityText}</p>
-        </div>
-
-        <div className="flex h-[52px] items-center justify-end gap-4 bg-surface px-3">
-          <button
-            type="button"
-            onClick={openCourse}
-            className="rounded-full p-2 text-muted transition-colors hover:bg-surface-alt hover:text-main"
-            aria-label="Open class activity"
-          >
-            <ShowChart fontSize="small" />
-          </button>
-          <button
-            type="button"
-            onClick={openCourse}
-            className="rounded-full p-2 text-muted transition-colors hover:bg-surface-alt hover:text-main"
-            aria-label="Open class folder"
-          >
-            <FolderOpen fontSize="small" />
-          </button>
-          <div ref={menuRef} className="relative">
+          {/* Menu button — overlaps between image and content area */}
+          <div ref={menuRef} className="absolute bottom-[-18px] right-6 z-30">
             <button
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="rounded-full p-2 text-muted transition-colors hover:bg-surface-alt hover:text-main"
-              aria-label="Card options"
-              aria-expanded={menuOpen}
+              className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-white shadow-md transition hover:scale-105"
             >
-              <MoreVert fontSize="small" />
+              <MoreVert className="text-black" fontSize="small" />
             </button>
 
             {menuOpen && (
-              <div className="absolute bottom-full right-0 z-20 mb-2 w-44 overflow-hidden rounded-lg border border-token bg-surface shadow-xl">
+              <div className="absolute right-0 top-[50px] z-50 w-44 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl">
                 <button
                   type="button"
                   onClick={openCourse}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover:bg-surface-alt"
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm hover:bg-gray-50"
                 >
                   <FolderOpen fontSize="small" />
                   Open class
@@ -193,11 +164,8 @@ export default function CourseCard({
                 {isTeacher && course.course_code && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onCopyCode(course.course_code)
-                    }}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover:bg-surface-alt"
+                    onClick={() => { setMenuOpen(false); onCopyCode(course.course_code) }}
+                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm hover:bg-gray-50"
                   >
                     <CopyAll fontSize="small" />
                     Copy code
@@ -207,11 +175,8 @@ export default function CourseCard({
                 {isTeacher && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onEdit(course)
-                    }}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-main hover:bg-surface-alt"
+                    onClick={() => { setMenuOpen(false); onEdit(course) }}
+                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm hover:bg-gray-50"
                   >
                     <AssignmentInd fontSize="small" />
                     Edit course
@@ -221,11 +186,8 @@ export default function CourseCard({
                 {isTeacher && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onDelete(course.id)
-                    }}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    onClick={() => { setMenuOpen(false); onDelete(course.id) }}
+                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50"
                   >
                     <DeleteOutline fontSize="small" />
                     Delete course
@@ -235,6 +197,22 @@ export default function CourseCard({
             )}
           </div>
         </div>
+
+
+        {/* CONTENT SECTION */}
+        <button
+          type="button"
+          onClick={openCourse}
+          className="w-full px-4 pb-5 pt-7 text-left"
+        >
+          <p className="mb-0.5 text-[12px] font-medium text-[#888888]">
+            By: {course.author_name || 'Teacher name'}
+          </p>
+          <h2 className="line-clamp-2 text-[20px] font-black leading-tight tracking-[-0.5px] text-black">
+            {course.title || 'Subject name'}
+          </h2>
+        </button>
+
       </div>
     </div>
   )
